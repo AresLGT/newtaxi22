@@ -63,7 +63,18 @@ export default function DriverDashboard() {
 
   const acceptOrderMutation = useMutation({
     mutationFn: async ({ orderId, distanceKm }: { orderId: string; distanceKm?: number }) => {
-      return await apiRequest("POST", `/api/orders/${orderId}/accept`, { driverId, distanceKm });
+      if (!driverId) {
+        throw new Error("Driver ID not available");
+      }
+      const response = await apiRequest("POST", `/api/orders/${orderId}/accept`, { 
+        driverId, 
+        distanceKm: distanceKm && distanceKm > 0 ? distanceKm : undefined
+      });
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
@@ -75,10 +86,11 @@ export default function DriverDashboard() {
       setSelectedOrder(null);
       distanceForm.reset();
     },
-    onError: () => {
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : "Не вдалося прийняти замовлення";
       toast({
         title: "Помилка",
-        description: "Не вдалося прийняти замовлення",
+        description: errorMessage,
         variant: "destructive",
       });
     },

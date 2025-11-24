@@ -111,6 +111,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const data = schema.parse(req.body);
 
+      // Auto-register driver if they don't exist yet
+      let driver = await storage.getUser(data.driverId);
+      if (!driver) {
+        driver = await storage.createUser({
+          id: data.driverId,
+          role: "driver",
+          name: `Driver ${data.driverId}`,
+          phone: null,
+          telegramAvatarUrl: null,
+        });
+      }
+
       const order = await storage.acceptOrder(req.params.id, data.driverId, data.distanceKm);
       if (!order) {
         return res.status(400).json({ error: "Cannot accept order" });
