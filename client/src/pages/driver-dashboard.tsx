@@ -239,25 +239,54 @@ export default function DriverDashboard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calculator className="w-5 h-5" />
-              Калькулятор кілометражу
+              Калькулятор вартості замовлення
             </DialogTitle>
             <DialogDescription>
-              Вкажіть приблизну відстань для замовлення
+              Вкажіть відстань та переглядьте розрахунок ціни
             </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && tariff && (
             <div className="space-y-4">
-              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="text-sm font-medium mb-2">Тариф</div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div>Базова ціна: <span className="font-semibold text-foreground">{tariff.basePrice} грн</span></div>
-                  <div>За кілометр: <span className="font-semibold text-foreground">{tariff.perKm} грн/км</span></div>
+              {/* Тариф */}
+              <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="w-4 h-4 text-primary" />
+                  <div className="text-sm font-semibold text-foreground">Тариф</div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Базова ціна:</span>
+                    <span className="text-sm font-bold text-foreground">{tariff.basePrice} грн</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">За кілометр:</span>
+                    <span className="text-sm font-bold text-foreground">{tariff.perKm} гривень</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Адреси */}
+              <div className="space-y-2 px-1">
+                <div className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-xs text-muted-foreground mb-0.5">Забрати</div>
+                    <div className="text-sm font-medium">{selectedOrder.from}</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Navigation className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-xs text-muted-foreground mb-0.5">Куди</div>
+                    <div className="text-sm font-medium">{selectedOrder.to}</div>
+                  </div>
                 </div>
               </div>
 
               <Form {...distanceForm}>
                 <form onSubmit={distanceForm.handleSubmit(handleSubmitDistance)} className="space-y-4">
+                  {/* Відстань */}
                   <FormField
                     control={distanceForm.control}
                     name="distanceKm"
@@ -270,16 +299,16 @@ export default function DriverDashboard() {
                         <FormControl>
                           <Input
                             type="number"
-                            step="0.1"
+                            step="0.01"
                             min="0"
-                            placeholder="Наприклад: 5.5"
+                            placeholder="Наприклад: 120.39"
                             {...field}
                             onChange={(e) => {
                               const value = parseFloat(e.target.value) || 0;
                               field.onChange(value);
                             }}
                             data-testid="input-distance-driver"
-                            className="text-base h-12"
+                            className="text-base h-12 font-semibold"
                           />
                         </FormControl>
                         <FormMessage />
@@ -287,12 +316,17 @@ export default function DriverDashboard() {
                     )}
                   />
 
+                  {/* Орієнтовна вартість */}
                   {estimatedPrice > 0 && (
-                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                      <div className="text-xs text-muted-foreground mb-1">Орієнтовна вартість</div>
-                      <div className="text-2xl font-bold text-primary">{estimatedPrice} грн</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {tariff.basePrice} грн + {watchedDistance} км × {tariff.perKm} грн/км
+                    <div className="p-4 bg-primary rounded-lg">
+                      <div className="text-xs text-primary-foreground/80 mb-2">Орієнтовна вартість</div>
+                      <div className="text-3xl font-bold text-primary-foreground mb-2">{estimatedPrice} грн</div>
+                      <div className="text-xs text-primary-foreground/70 space-y-0.5">
+                        <div>{tariff.basePrice} грн (базова ціна)</div>
+                        <div>{watchedDistance.toFixed(2)} км × {tariff.perKm} грн/км = {Math.ceil(watchedDistance * tariff.perKm)} грн</div>
+                        <div className="pt-1 border-t border-primary-foreground/20 mt-1">
+                          Всього: {tariff.basePrice} грн + {Math.ceil(watchedDistance * tariff.perKm)} грн = {estimatedPrice} грн
+                        </div>
                       </div>
                     </div>
                   )}
@@ -301,9 +335,9 @@ export default function DriverDashboard() {
                     type="submit"
                     className="w-full h-12 font-semibold"
                     data-testid="button-submit-distance"
-                    disabled={acceptOrderMutation.isPending}
+                    disabled={acceptOrderMutation.isPending || watchedDistance <= 0}
                   >
-                    {acceptOrderMutation.isPending ? "Обробка..." : "Прийняти замовлення"}
+                    {acceptOrderMutation.isPending ? "Обробка..." : "Підтвердити та прийняти"}
                   </Button>
                 </form>
               </Form>
