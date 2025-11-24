@@ -1,0 +1,1001 @@
+2025-11-24T03:38:25.980353376Z [err]              _rp_callbackOrig: undefined,
+2025-11-24T03:38:25.980359362Z [err]              callback: [Function (anonymous)],
+2025-11-24T03:38:25.980365397Z [err]              _rp_options: [Object],
+2025-11-24T03:38:25.980371020Z [err]              headers: [Object],
+2025-11-24T03:38:25.980378592Z [err]              setHeader: [Function (anonymous)],
+2025-11-24T03:38:25.983159613Z [err]              _jar: undefined,
+2025-11-24T03:38:25.983167470Z [err]              port: 443,
+2025-11-24T03:38:25.983171500Z [err]              host: 'api.telegram.org',
+2025-11-24T03:38:25.983175839Z [err]              body: 'offset=0&timeout=10',
+2025-11-24T03:38:25.983179994Z [err]              path: '/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:25.983184171Z [err]              httpModule: [Object],
+2025-11-24T03:38:25.983188199Z [err]              agentClass: [Function: Agent],
+2025-11-24T03:38:25.983193049Z [err]              agentOptions: [Object],
+2025-11-24T03:38:25.983205869Z [err]              agent: [Agent],
+2025-11-24T03:38:25.983217407Z [err]              _started: true,
+2025-11-24T03:38:25.983226312Z [err]              href: 'https://api.telegram.org/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:25.983232936Z [err]              req: [ClientRequest],
+2025-11-24T03:38:27.037882174Z [err]              _secureContexnpm warn config production Use `--omit=dev` instead.
+2025-11-24T03:38:27.067656902Z [inf]  
+2025-11-24T03:38:27.067664327Z [inf]  > rest-express@1.0.0 start
+2025-11-24T03:38:27.067670790Z [inf]  > NODE_ENV=production node dist/index.js
+2025-11-24T03:38:27.067676886Z [inf]  
+2025-11-24T03:38:27.964901946Z [inf]  ✅ Telegram bot initialized successfully
+2025-11-24T03:38:27.964910276Z [inf]  3:38:27 AM [telegram] Telegram bot initialized successfully
+2025-11-24T03:38:27.964930606Z [inf]  3:38:27 AM [express] serving on port 8080
+2025-11-24T03:38:28.396689852Z [err]      at Async._drainQueues (/app/node_modules/bluebird/js/release/async.js:102:5)
+2025-11-24T03:38:28.396700771Z [err]      at Async.drainQueues (/app/node_modules/bluebird/js/release/async.js:15:14)
+2025-11-24T03:38:28.396708153Z [err]      at process.processImmediate (node:internal/timers:485:21) {
+2025-11-24T03:38:28.396718328Z [err]  /app/node_modules/node-telegram-bot-api/src/telegram.js:316
+2025-11-24T03:38:28.396722278Z [err]    code: 'ETELEGRAM',
+2025-11-24T03:38:28.396729497Z [err]    response: <ref *8> IncomingMessage {
+2025-11-24T03:38:28.396731401Z [err]          throw new errors.TelegramError(`${data.error_code} ${data.description}`, resp);
+2025-11-24T03:38:28.396739291Z [err]                ^
+2025-11-24T03:38:28.396739546Z [err]      _events: {
+2025-11-24T03:38:28.396747028Z [err]  
+2025-11-24T03:38:28.396752367Z [err]  TelegramError: ETELEGRAM: 400 Bad Request: keyboard button Web App URL 'http://localhost:8080/driver.html' is invalid: Only HTTPS links are allowed
+2025-11-24T03:38:28.396758189Z [err]      at /app/node_modules/node-telegram-bot-api/src/telegram.js:316:15
+2025-11-24T03:38:28.396763751Z [err]      at tryCatcher (/app/node_modules/bluebird/js/release/util.js:16:23)
+2025-11-24T03:38:28.396769034Z [err]      at Promise._settlePromiseFromHandler (/app/node_modules/bluebird/js/release/promise.js:547:31)
+2025-11-24T03:38:28.396774240Z [err]      at Promise._settlePromise (/app/node_modules/bluebird/js/release/promise.js:604:18)
+2025-11-24T03:38:28.396779671Z [err]      at Promise._settlePromise0 (/app/node_modules/bluebird/js/release/promise.js:649:10)
+2025-11-24T03:38:28.396786076Z [err]      at Promise._settlePromises (/app/node_modules/bluebird/js/release/promise.js:729:18)
+2025-11-24T03:38:28.396793534Z [err]      at _drainQueueStep (/app/node_modules/bluebird/js/release/async.js:93:12)
+2025-11-24T03:38:28.396800774Z [err]      at _drainQueue (/app/node_modules/bluebird/js/release/async.js:86:9)
+2025-11-24T03:38:28.397869683Z [err]        close: [ [Function (anonymous)], [Function (anonymous)] ],
+2025-11-24T03:38:28.397870550Z [err]        'Date',
+2025-11-24T03:38:28.397876862Z [err]        '163',
+2025-11-24T03:38:28.397881886Z [err]        'Mon, 24 Nov 2025 03:38:28 GMT',
+2025-11-24T03:38:28.397882985Z [err]        error: [Function (anonymous)],
+2025-11-24T03:38:28.397884506Z [err]      },
+2025-11-24T03:38:28.397890516Z [err]        'Content-Type',
+2025-11-24T03:38:28.397891931Z [err]        data: [Function (anonymous)],
+2025-11-24T03:38:28.397894626Z [err]      _maxListeners: undefined,
+2025-11-24T03:38:28.397899054Z [err]        'application/json',
+2025-11-24T03:38:28.397900787Z [err]        end: [ [Function: responseOnEnd], [Function (anonymous)] ],
+2025-11-24T03:38:28.397904552Z [err]      socket: null,
+2025-11-24T03:38:28.397908012Z [err]        'Content-Length',
+2025-11-24T03:38:28.397909467Z [err]        readable: undefined
+2025-11-24T03:38:28.397912947Z [err]      httpVersionMajor: 1,
+2025-11-24T03:38:28.397918237Z [err]      },
+2025-11-24T03:38:28.397920921Z [err]      httpVersionMinor: 1,
+2025-11-24T03:38:28.397926826Z [err]      _readableState: ReadableState {
+2025-11-24T03:38:28.397928543Z [err]      httpVersion: '1.1',
+2025-11-24T03:38:28.397934592Z [err]        highWaterMark: 65536,
+2025-11-24T03:38:28.397936734Z [err]      complete: true,
+2025-11-24T03:38:28.397942264Z [err]        buffer: [],
+2025-11-24T03:38:28.397945167Z [err]      rawHeaders: [
+2025-11-24T03:38:28.397950059Z [err]        bufferIndex: 0,
+2025-11-24T03:38:28.397953280Z [err]        'Server',
+2025-11-24T03:38:28.397957255Z [err]        length: 0,
+2025-11-24T03:38:28.397964676Z [err]        'nginx/1.18.0',
+2025-11-24T03:38:28.397964843Z [err]        pipes: [],
+2025-11-24T03:38:28.397971468Z [err]        awaitDrainWriters: null,
+2025-11-24T03:38:28.397978244Z [err]        [Symbol(kState)]: 194779004
+2025-11-24T03:38:28.398984594Z [err]          ALPNProtocols: undefined,
+2025-11-24T03:38:28.398988018Z [err]        'Connection',
+2025-11-24T03:38:28.398988764Z [err]          secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:28.398997441Z [err]          isServer: false,
+2025-11-24T03:38:28.398998303Z [err]        'keep-alive',
+2025-11-24T03:38:28.399003410Z [err]          requestCert: true,
+2025-11-24T03:38:28.399005048Z [err]          requestOCSP: undefined,
+2025-11-24T03:38:28.399007739Z [err]        'Strict-Transport-Security',
+2025-11-24T03:38:28.399012867Z [err]          rejectUnauthorized: true,
+2025-11-24T03:38:28.399016607Z [err]        'max-age=31536000; includeSubDomains; preload',
+2025-11-24T03:38:28.399021204Z [err]      url: '',
+2025-11-24T03:38:28.399021843Z [err]          session: undefined,
+2025-11-24T03:38:28.399027660Z [err]        'Access-Control-Allow-Origin',
+2025-11-24T03:38:28.399029510Z [err]      method: null,
+2025-11-24T03:38:28.399035653Z [err]        '*',
+2025-11-24T03:38:28.399037715Z [err]      statusCode: 400,
+2025-11-24T03:38:28.399041859Z [err]        'Access-Control-Expose-Headers',
+2025-11-24T03:38:28.399045859Z [err]      statusMessage: 'Bad Request',
+2025-11-24T03:38:28.399047623Z [err]        'Content-Length,Content-Type,Date,Server,Connection'
+2025-11-24T03:38:28.399052985Z [err]      ],
+2025-11-24T03:38:28.399054006Z [err]      client: <ref *1> TLSSocket {
+2025-11-24T03:38:28.399059095Z [err]      rawTrailers: [],
+2025-11-24T03:38:28.399061327Z [err]        _tlsOptions: {
+2025-11-24T03:38:28.399065240Z [err]      joinDuplicateHeaders: undefined,
+2025-11-24T03:38:28.399069574Z [err]          allowHalfOpen: undefined,
+2025-11-24T03:38:28.399073464Z [err]      aborted: false,
+2025-11-24T03:38:28.399076966Z [err]          pipe: false,
+2025-11-24T03:38:28.399079056Z [err]      upgrade: false,
+2025-11-24T03:38:28.399854884Z [err]          enableTrace: undefined,
+2025-11-24T03:38:28.399872702Z [err]          pskCallback: undefined,
+2025-11-24T03:38:28.399882832Z [err]          highWaterMark: undefined,
+2025-11-24T03:38:28.399897989Z [err]          onread: undefined,
+2025-11-24T03:38:28.399906600Z [err]          signal: undefined
+2025-11-24T03:38:28.399918068Z [err]        },
+2025-11-24T03:38:28.399925954Z [err]        _secureEstablished: true,
+2025-11-24T03:38:28.399934215Z [err]        _securePending: false,
+2025-11-24T03:38:28.399941623Z [err]        _newSessionPending: false,
+2025-11-24T03:38:28.399949705Z [err]        _controlReleased: true,
+2025-11-24T03:38:28.399960324Z [err]        secureConnecting: false,
+2025-11-24T03:38:28.399968374Z [err]        _SNICallback: null,
+2025-11-24T03:38:28.399975214Z [err]        servername: 'api.telegram.org',
+2025-11-24T03:38:28.399982500Z [err]        alpnProtocol: false,
+2025-11-24T03:38:28.399989147Z [err]        authorized: true,
+2025-11-24T03:38:28.399996291Z [err]        authorizationError: null,
+2025-11-24T03:38:28.400003337Z [err]        encrypted: true,
+2025-11-24T03:38:28.400011199Z [err]        _events: [Object: null prototype] {
+2025-11-24T03:38:28.400018627Z [err]          close: [
+2025-11-24T03:38:28.400025908Z [err]            [Function: onSocketCloseDestroySSL],
+2025-11-24T03:38:28.400033062Z [err]            [Function: bound onceWrapper] {
+2025-11-24T03:38:28.400040201Z [err]              listener: [Function (anonymous)]
+2025-11-24T03:38:28.400048100Z [err]            },
+2025-11-24T03:38:28.400054944Z [err]            [Function: onClose]
+2025-11-24T03:38:28.400061627Z [err]          ],
+2025-11-24T03:38:28.400068612Z [err]          end: [Function: onReadableStreamEnd],
+2025-11-24T03:38:28.400074979Z [err]          error: [Function: bound onceWrapper] {
+2025-11-24T03:38:28.400082935Z [err]            listener: [Function: freeSocketErrorListener]
+2025-11-24T03:38:28.400749745Z [err]          },
+2025-11-24T03:38:28.400757334Z [err]          newListener: [Function: keylogNewListener],
+2025-11-24T03:38:28.400762569Z [err]          connect: undefined,
+2025-11-24T03:38:28.400767772Z [err]          secure: [Function: onConnectSecure],
+2025-11-24T03:38:28.400774207Z [err]          session: [Function (anonymous)],
+2025-11-24T03:38:28.400779426Z [err]          free: [Function: onFree],
+2025-11-24T03:38:28.400784090Z [err]          timeout: [Function: onTimeout],
+2025-11-24T03:38:28.400788729Z [err]          agentRemove: [Function: onRemove],
+2025-11-24T03:38:28.400793744Z [err]          data: undefined,
+2025-11-24T03:38:28.400799180Z [err]          drain: undefined
+2025-11-24T03:38:28.400804254Z [err]        },
+2025-11-24T03:38:28.400815354Z [err]        _eventsCount: 9,
+2025-11-24T03:38:28.400826637Z [err]        connecting: false,
+2025-11-24T03:38:28.400831845Z [err]        _hadError: false,
+2025-11-24T03:38:28.400836680Z [err]        _parent: null,
+2025-11-24T03:38:28.400846881Z [err]        _host: 'api.telegram.org',
+2025-11-24T03:38:28.400853249Z [err]        _closeAfterHandlingError: false,
+2025-11-24T03:38:28.400860191Z [err]        _readableState: ReadableState {
+2025-11-24T03:38:28.400865384Z [err]          highWaterMark: 65536,
+2025-11-24T03:38:28.400871078Z [err]          buffer: [],
+2025-11-24T03:38:28.400876657Z [err]          bufferIndex: 0,
+2025-11-24T03:38:28.400882502Z [err]          length: 0,
+2025-11-24T03:38:28.400887857Z [err]          pipes: [],
+2025-11-24T03:38:28.400893476Z [err]          awaitDrainWriters: null,
+2025-11-24T03:38:28.400900315Z [err]          [Symbol(kState)]: 60303620
+2025-11-24T03:38:28.400905801Z [err]        },
+2025-11-24T03:38:28.400911603Z [err]        _writableState: WritableState {
+2025-11-24T03:38:28.400932416Z [err]          highWaterMark: 65536,
+2025-11-24T03:38:28.400939397Z [err]          length: 0,
+2025-11-24T03:38:28.401654742Z [err]          corked: 0,
+2025-11-24T03:38:28.401663142Z [err]          onwrite: [Function: bound onwrite],
+2025-11-24T03:38:28.401668130Z [err]          reading: true,
+2025-11-24T03:38:28.401670958Z [err]          writelen: 0,
+2025-11-24T03:38:28.401681023Z [err]          bufferedIndex: 0,
+2025-11-24T03:38:28.401681369Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:28.401685570Z [err]          },
+2025-11-24T03:38:28.401692757Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:28.401694014Z [err]        server: undefined,
+2025-11-24T03:38:28.401705292Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:28.401705654Z [err]          _parentWrap: null,
+2025-11-24T03:38:28.401707688Z [err]          pendingcb: 0,
+2025-11-24T03:38:28.401707737Z [err]        _server: null,
+2025-11-24T03:38:28.401719436Z [err]        ssl: <ref *2> TLSWrap {
+2025-11-24T03:38:28.401719491Z [err]          [Symbol(kState)]: 17563908,
+2025-11-24T03:38:28.401731018Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:28.401732448Z [err]          _parent: TCP {
+2025-11-24T03:38:28.401732536Z [err]          [Symbol(kBufferedValue)]: null,
+2025-11-24T03:38:28.401743117Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:28.401744242Z [err]          [Symbol(kWriteCbValue)]: null
+2025-11-24T03:38:28.401751422Z [err]        },
+2025-11-24T03:38:28.401753441Z [err]            onconnection: null,
+2025-11-24T03:38:28.401757564Z [err]        allowHalfOpen: false,
+2025-11-24T03:38:28.401763417Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:28.401763457Z [err]        _maxListeners: undefined,
+2025-11-24T03:38:28.401769819Z [err]        _sockname: null,
+2025-11-24T03:38:28.401774165Z [err]        _pendingData: null,
+2025-11-24T03:38:28.401778960Z [err]        _pendingEncoding: '',
+2025-11-24T03:38:28.403118866Z [err]          reading: true,
+2025-11-24T03:38:28.403129432Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:28.403132255Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:28.403134473Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:28.403146620Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:28.403147342Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:28.403152413Z [err]            onconnection: null,
+2025-11-24T03:38:28.403158182Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:28.403158491Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:28.403167440Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:28.403170682Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:28.403175191Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:28.403186089Z [err]          },
+2025-11-24T03:38:28.403186161Z [err]        },
+2025-11-24T03:38:28.403197342Z [err]        _requestCert: true,
+2025-11-24T03:38:28.403200507Z [err]          _parentWrap: null,
+2025-11-24T03:38:28.403214024Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:28.403215052Z [err]        _rejectUnauthorized: true,
+2025-11-24T03:38:28.403221995Z [err]        parser: null,
+2025-11-24T03:38:28.403227792Z [err]        _httpMessage: null,
+2025-11-24T03:38:28.403232934Z [err]        autoSelectFamilyAttemptedAddresses: [ '149.154.167.220:443' ],
+2025-11-24T03:38:28.403238049Z [err]        timeout: 0,
+2025-11-24T03:38:28.403243484Z [err]        [Symbol(alpncallback)]: null,
+2025-11-24T03:38:28.403248845Z [err]        [Symbol(res)]: <ref *2> TLSWrap {
+2025-11-24T03:38:28.403254284Z [err]          _parent: TCP {
+2025-11-24T03:38:28.403566497Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:28.403578570Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:28.403594355Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:28.403612794Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:28.403629170Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:28.417203372Z [err]              _rp_options: [Object],
+2025-11-24T03:38:28.419310484Z [err]              'te',               'user-agent',
+2025-11-24T03:38:28.421219878Z [err]            method: 'POST',
+2025-11-24T03:38:28.423218706Z [err]            hostname: 'api.telegram.org',
+2025-11-24T03:38:28.425618393Z [err]              free: [Function (anonymous)],
+2025-11-24T03:38:28.428147109Z [err]            defaultPort: 443,
+2025-11-24T03:38:28.428864771Z [err]        }
+2025-11-24T03:38:28.432013978Z [err]          },
+2025-11-24T03:38:28.433650053Z [err]          [Symbol(kCapture)]: false
+2025-11-24T03:38:28.436406444Z [err]              [Function: onSocketCloseDestroySSL],
+2025-11-24T03:38:28.437434755Z [err]            bufferIndex: 0,
+2025-11-24T03:38:28.439545492Z [err]              [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:28.441707732Z [err]            checkServerIdentity: [Function: checkServerIdentity],
+2025-11-24T03:38:28.445216010Z [err]              hasAuth: false,
+2025-11-24T03:38:28.445223954Z [err]              sentAuth: false,
+2025-11-24T03:38:28.446670827Z [err]              _cancellationParent: undefined
+2025-11-24T03:38:28.448748216Z [err]              transform: undefined,
+2025-11-24T03:38:28.451935376Z [err]              _maxListeners: undefined,
+2025-11-24T03:38:28.453114725Z [err]            encoding: null,
+2025-11-24T03:38:28.455343138Z [err]          request: [Circular *9],
+2025-11-24T03:38:28.459438303Z [err]            chat_id: 7677921905,
+2025-11-24T03:38:28.459446676Z [err]            text: 'Вітаю, Адміністратор! 👑\n' +
+2025-11-24T03:38:28.460835688Z [err]              'api.telegram.org:443:::::::::::::::::::::': [Array]
+2025-11-24T03:38:28.463749336Z [err]        path: '/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/sendMessage',
+2025-11-24T03:38:28.465148519Z [err]            keepAlive: true,
+2025-11-24T03:38:28.467591215Z [err]            },
+2025-11-24T03:38:28.468689255Z [err]          useChunkedEncodingByDefault: true,
+2025-11-24T03:38:28.470718563Z [err]            _maxListeners: undefined,
+2025-11-24T03:38:28.472965385Z [err]            _tlsOptions: {
+2025-11-24T03:38:28.474791685Z [err]              [Symbol(kState)]: 60303620
+2025-11-24T03:38:28.477226380Z [err]              onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:30.117328827Z [err]              _secureContexnpm warn config production Use `--omit=dev` instead.
+2025-11-24T03:38:30.117335212Z [inf]  
+2025-11-24T03:38:30.117342331Z [inf]  > rest-express@1.0.0 start
+2025-11-24T03:38:30.117348307Z [inf]  > NODE_ENV=production node dist/index.js
+2025-11-24T03:38:30.117364336Z [inf]  
+2025-11-24T03:38:31.060030869Z [inf]  ✅ Telegram bot initialized successfully
+2025-11-24T03:38:31.060037784Z [inf]  3:38:30 AM [telegram] Telegram bot initialized successfully
+2025-11-24T03:38:31.060043847Z [inf]  3:38:30 AM [express] serving on port 8080
+2025-11-24T03:38:31.353822762Z [err]      at _drainQueue (/app/node_modules/bluebird/js/release/async.js:86:9)
+2025-11-24T03:38:31.353833544Z [err]      at Async._drainQueues (/app/node_modules/bluebird/js/release/async.js:102:5)
+2025-11-24T03:38:31.353839034Z [err]      at Async.drainQueues (/app/node_modules/bluebird/js/release/async.js:15:14)
+2025-11-24T03:38:31.353845426Z [err]      at process.processImmediate (node:internal/timers:485:21) {
+2025-11-24T03:38:31.353850194Z [err]    code: 'ETELEGRAM',
+2025-11-24T03:38:31.353856191Z [err]    response: <ref *8> IncomingMessage {
+2025-11-24T03:38:31.353860518Z [err]      _events: {
+2025-11-24T03:38:31.353872082Z [err]  /app/node_modules/node-telegram-bot-api/src/telegram.js:316
+2025-11-24T03:38:31.353877035Z [err]          throw new errors.TelegramError(`${data.error_code} ${data.description}`, resp);
+2025-11-24T03:38:31.353881748Z [err]                ^
+2025-11-24T03:38:31.353886563Z [err]  
+2025-11-24T03:38:31.353890952Z [err]  TelegramError: ETELEGRAM: 400 Bad Request: keyboard button Web App URL 'http://localhost:8080/driver.html' is invalid: Only HTTPS links are allowed
+2025-11-24T03:38:31.353896164Z [err]      at /app/node_modules/node-telegram-bot-api/src/telegram.js:316:15
+2025-11-24T03:38:31.353900563Z [err]      at tryCatcher (/app/node_modules/bluebird/js/release/util.js:16:23)
+2025-11-24T03:38:31.353905423Z [err]      at Promise._settlePromiseFromHandler (/app/node_modules/bluebird/js/release/promise.js:547:31)
+2025-11-24T03:38:31.353909581Z [err]      at Promise._settlePromise (/app/node_modules/bluebird/js/release/promise.js:604:18)
+2025-11-24T03:38:31.353914241Z [err]      at Promise._settlePromise0 (/app/node_modules/bluebird/js/release/promise.js:649:10)
+2025-11-24T03:38:31.353918751Z [err]      at Promise._settlePromises (/app/node_modules/bluebird/js/release/promise.js:729:18)
+2025-11-24T03:38:31.353923835Z [err]      at _drainQueueStep (/app/node_modules/bluebird/js/release/async.js:93:12)
+2025-11-24T03:38:31.355088769Z [err]        highWaterMark: 65536,
+2025-11-24T03:38:31.355090280Z [err]        close: [ [Function (anonymous)], [Function (anonymous)] ],
+2025-11-24T03:38:31.355097063Z [err]      complete: true,
+2025-11-24T03:38:31.355097621Z [err]        buffer: [],
+2025-11-24T03:38:31.355104556Z [err]        error: [Function (anonymous)],
+2025-11-24T03:38:31.355105757Z [err]        bufferIndex: 0,
+2025-11-24T03:38:31.355109306Z [err]      rawHeaders: [
+2025-11-24T03:38:31.355113814Z [err]        length: 0,
+2025-11-24T03:38:31.355114278Z [err]        data: [Function (anonymous)],
+2025-11-24T03:38:31.355118750Z [err]        'Server',
+2025-11-24T03:38:31.355122551Z [err]        pipes: [],
+2025-11-24T03:38:31.355123466Z [err]        end: [ [Function: responseOnEnd], [Function (anonymous)] ],
+2025-11-24T03:38:31.355125894Z [err]        'nginx/1.18.0',
+2025-11-24T03:38:31.355131445Z [err]        awaitDrainWriters: null,
+2025-11-24T03:38:31.355131642Z [err]        readable: undefined
+2025-11-24T03:38:31.355135239Z [err]        'Date',
+2025-11-24T03:38:31.355140312Z [err]      },
+2025-11-24T03:38:31.355140713Z [err]        [Symbol(kState)]: 194779004
+2025-11-24T03:38:31.355144277Z [err]        'Mon, 24 Nov 2025 03:38:31 GMT',
+2025-11-24T03:38:31.355149014Z [err]      },
+2025-11-24T03:38:31.355152246Z [err]        'Content-Type',
+2025-11-24T03:38:31.355156468Z [err]      _maxListeners: undefined,
+2025-11-24T03:38:31.355158296Z [err]        'application/json',
+2025-11-24T03:38:31.355163230Z [err]      socket: null,
+2025-11-24T03:38:31.355165429Z [err]        'Content-Length',
+2025-11-24T03:38:31.355169197Z [err]      httpVersionMajor: 1,
+2025-11-24T03:38:31.355171785Z [err]        '163',
+2025-11-24T03:38:31.355175527Z [err]      httpVersionMinor: 1,
+2025-11-24T03:38:31.355181637Z [err]      httpVersion: '1.1',
+2025-11-24T03:38:31.355302667Z [err]      _readableState: ReadableState {
+2025-11-24T03:38:31.356319616Z [err]        'Connection',
+2025-11-24T03:38:31.356326860Z [err]      aborted: false,
+2025-11-24T03:38:31.356328608Z [err]        'keep-alive',
+2025-11-24T03:38:31.356335689Z [err]      upgrade: false,
+2025-11-24T03:38:31.356345026Z [err]      url: '',
+2025-11-24T03:38:31.356349728Z [err]      method: null,
+2025-11-24T03:38:31.356354252Z [err]      statusCode: 400,
+2025-11-24T03:38:31.356357510Z [err]        'Strict-Transport-Security',
+2025-11-24T03:38:31.356359678Z [err]      statusMessage: 'Bad Request',
+2025-11-24T03:38:31.356365277Z [err]      client: <ref *1> TLSSocket {
+2025-11-24T03:38:31.356365799Z [err]        'max-age=31536000; includeSubDomains; preload',
+2025-11-24T03:38:31.356370777Z [err]        'Access-Control-Allow-Origin',
+2025-11-24T03:38:31.356375124Z [err]        '*',
+2025-11-24T03:38:31.356379482Z [err]        'Access-Control-Expose-Headers',
+2025-11-24T03:38:31.356383485Z [err]        'Content-Length,Content-Type,Date,Server,Connection'
+2025-11-24T03:38:31.356387472Z [err]      ],
+2025-11-24T03:38:31.356392121Z [err]      rawTrailers: [],
+2025-11-24T03:38:31.356395964Z [err]      joinDuplicateHeaders: undefined,
+2025-11-24T03:38:31.356624727Z [err]        _tlsOptions: {
+2025-11-24T03:38:31.356633471Z [err]          allowHalfOpen: undefined,
+2025-11-24T03:38:31.356639418Z [err]          pipe: false,
+2025-11-24T03:38:31.356645468Z [err]          secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:31.356652913Z [err]          isServer: false,
+2025-11-24T03:38:31.356660290Z [err]          requestCert: true,
+2025-11-24T03:38:31.356699941Z [err]          rejectUnauthorized: true,
+2025-11-24T03:38:31.356707179Z [err]          session: undefined,
+2025-11-24T03:38:31.356711982Z [err]          ALPNProtocols: undefined,
+2025-11-24T03:38:31.356836302Z [err]          requestOCSP: undefined,
+2025-11-24T03:38:31.357329222Z [err]          enableTrace: undefined,
+2025-11-24T03:38:31.357522874Z [err]          pskCallback: undefined,
+2025-11-24T03:38:31.357531439Z [err]          highWaterMark: undefined,
+2025-11-24T03:38:31.357537818Z [err]          onread: undefined,
+2025-11-24T03:38:31.357545998Z [err]          signal: undefined
+2025-11-24T03:38:31.357552763Z [err]        },
+2025-11-24T03:38:31.357559638Z [err]        _secureEstablished: true,
+2025-11-24T03:38:31.357564105Z [err]        _securePending: false,
+2025-11-24T03:38:31.357570336Z [err]        _newSessionPending: false,
+2025-11-24T03:38:31.357576919Z [err]        _controlReleased: true,
+2025-11-24T03:38:31.357582911Z [err]        secureConnecting: false,
+2025-11-24T03:38:31.357589818Z [err]        _SNICallback: null,
+2025-11-24T03:38:31.357597893Z [err]        servername: 'api.telegram.org',
+2025-11-24T03:38:31.357606090Z [err]        alpnProtocol: false,
+2025-11-24T03:38:31.357618864Z [err]        authorized: true,
+2025-11-24T03:38:31.357628262Z [err]        authorizationError: null,
+2025-11-24T03:38:31.357633891Z [err]        encrypted: true,
+2025-11-24T03:38:31.357645890Z [err]        _events: [Object: null prototype] {
+2025-11-24T03:38:31.357655035Z [err]          close: [
+2025-11-24T03:38:31.357663791Z [err]            [Function: onSocketCloseDestroySSL],
+2025-11-24T03:38:31.357668986Z [err]            [Function: bound onceWrapper] {
+2025-11-24T03:38:31.357674519Z [err]              listener: [Function (anonymous)]
+2025-11-24T03:38:31.357679959Z [err]            },
+2025-11-24T03:38:31.357685978Z [err]            [Function: onClose]
+2025-11-24T03:38:31.357694175Z [err]          ],
+2025-11-24T03:38:31.357706817Z [err]          end: [Function: onReadableStreamEnd],
+2025-11-24T03:38:31.357713169Z [err]          error: [Function: bound onceWrapper] {
+2025-11-24T03:38:31.357718425Z [err]            listener: [Function: freeSocketErrorListener]
+2025-11-24T03:38:31.359448216Z [err]          },
+2025-11-24T03:38:31.359460306Z [err]          newListener: [Function: keylogNewListener],
+2025-11-24T03:38:31.359467502Z [err]          connect: undefined,
+2025-11-24T03:38:31.359473888Z [err]          secure: [Function: onConnectSecure],
+2025-11-24T03:38:31.359480167Z [err]          session: [Function (anonymous)],
+2025-11-24T03:38:31.359486931Z [err]          highWaterMark: 65536,
+2025-11-24T03:38:31.359487852Z [err]          buffer: [],
+2025-11-24T03:38:31.359488562Z [err]          free: [Function: onFree],
+2025-11-24T03:38:31.359496600Z [err]          timeout: [Function: onTimeout],
+2025-11-24T03:38:31.359497779Z [err]          length: 0,
+2025-11-24T03:38:31.359499013Z [err]          bufferIndex: 0,
+2025-11-24T03:38:31.359504833Z [err]          agentRemove: [Function: onRemove],
+2025-11-24T03:38:31.359506929Z [err]          length: 0,
+2025-11-24T03:38:31.359512025Z [err]          data: undefined,
+2025-11-24T03:38:31.359514568Z [err]          pipes: [],
+2025-11-24T03:38:31.359518605Z [err]          drain: undefined
+2025-11-24T03:38:31.359523020Z [err]          awaitDrainWriters: null,
+2025-11-24T03:38:31.359524082Z [err]        },
+2025-11-24T03:38:31.359546461Z [err]        _eventsCount: 9,
+2025-11-24T03:38:31.359552207Z [err]        connecting: false,
+2025-11-24T03:38:31.359557416Z [err]        _hadError: false,
+2025-11-24T03:38:31.359561316Z [err]          [Symbol(kState)]: 60303620
+2025-11-24T03:38:31.359564556Z [err]        _parent: null,
+2025-11-24T03:38:31.359569233Z [err]        },
+2025-11-24T03:38:31.359572511Z [err]        _host: 'api.telegram.org',
+2025-11-24T03:38:31.359576933Z [err]        _writableState: WritableState {
+2025-11-24T03:38:31.359580687Z [err]        _closeAfterHandlingError: false,
+2025-11-24T03:38:31.359590598Z [err]        _readableState: ReadableState {
+2025-11-24T03:38:31.359598781Z [err]          highWaterMark: 65536,
+2025-11-24T03:38:31.360334225Z [err]          reading: true,
+2025-11-24T03:38:31.360344942Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:31.360345150Z [err]          corked: 0,
+2025-11-24T03:38:31.360351051Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:31.360357769Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:31.360358911Z [err]          onwrite: [Function: bound onwrite],
+2025-11-24T03:38:31.360365242Z [err]          _parentWrap: null,
+2025-11-24T03:38:31.360369167Z [err]          writelen: 0,
+2025-11-24T03:38:31.360379549Z [err]          bufferedIndex: 0,
+2025-11-24T03:38:31.360381541Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:31.360389476Z [err]          pendingcb: 0,
+2025-11-24T03:38:31.360396328Z [err]          [Symbol(kState)]: 17563908,
+2025-11-24T03:38:31.360403993Z [err]          [Symbol(kBufferedValue)]: null,
+2025-11-24T03:38:31.360421557Z [err]          [Symbol(kWriteCbValue)]: null
+2025-11-24T03:38:31.360428079Z [err]        },
+2025-11-24T03:38:31.360435812Z [err]        allowHalfOpen: false,
+2025-11-24T03:38:31.360442589Z [err]        _maxListeners: undefined,
+2025-11-24T03:38:31.360448747Z [err]        _sockname: null,
+2025-11-24T03:38:31.360454318Z [err]        _pendingData: null,
+2025-11-24T03:38:31.360463681Z [err]        _pendingEncoding: '',
+2025-11-24T03:38:31.360479581Z [err]        server: undefined,
+2025-11-24T03:38:31.360486985Z [err]        _server: null,
+2025-11-24T03:38:31.360493034Z [err]        ssl: <ref *2> TLSWrap {
+2025-11-24T03:38:31.360498511Z [err]          _parent: TCP {
+2025-11-24T03:38:31.360503401Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:31.360508279Z [err]            onconnection: null,
+2025-11-24T03:38:31.360517718Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:31.360525137Z [err]          },
+2025-11-24T03:38:31.361291952Z [err]        },
+2025-11-24T03:38:31.361301338Z [err]        _requestCert: true,
+2025-11-24T03:38:31.361306668Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:31.361309410Z [err]        _rejectUnauthorized: true,
+2025-11-24T03:38:31.361314384Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:31.361317670Z [err]          _parentWrap: null,
+2025-11-24T03:38:31.361318211Z [err]        parser: null,
+2025-11-24T03:38:31.361319339Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:31.361327867Z [err]        _httpMessage: null,
+2025-11-24T03:38:31.361329141Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:31.361335627Z [err]          reading: true,
+2025-11-24T03:38:31.361336678Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:31.361337803Z [err]        autoSelectFamilyAttemptedAddresses: [ '149.154.167.220:443' ],
+2025-11-24T03:38:31.361339227Z [err]        [Symbol(res)]: <ref *2> TLSWrap {
+2025-11-24T03:38:31.361340671Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:31.361350652Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:31.361350876Z [err]          _parent: TCP {
+2025-11-24T03:38:31.361353996Z [err]        timeout: 0,
+2025-11-24T03:38:31.361355917Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:31.361360329Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:31.361362236Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:31.361365020Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:31.361365117Z [err]        [Symbol(alpncallback)]: null,
+2025-11-24T03:38:31.361370020Z [err]          },
+2025-11-24T03:38:31.361377915Z [err]            onconnection: null,
+2025-11-24T03:38:31.362089828Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:31.362096226Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:31.362102116Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:31.362107912Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:31.362113058Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:31.362117961Z [err]        },
+2025-11-24T03:38:31.362122953Z [err]        [Symbol(verified)]: true,
+2025-11-24T03:38:31.362128213Z [err]        [Symbol(pendingSession)]: null,
+2025-11-24T03:38:31.362133530Z [err]        [Symbol(async_id_symbol)]: -1,
+2025-11-24T03:38:31.362139253Z [err]        [Symbol(kHandle)]: <ref *2> TLSWrap {
+2025-11-24T03:38:31.362145972Z [err]          _parent: TCP {
+2025-11-24T03:38:31.362151685Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:31.362157152Z [err]            onconnection: null,
+2025-11-24T03:38:31.362162350Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:31.362167537Z [err]          },
+2025-11-24T03:38:31.362172060Z [err]          _parentWrap: null,
+2025-11-24T03:38:31.362177512Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:31.362184526Z [err]          reading: true,
+2025-11-24T03:38:31.362189672Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:31.362194988Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:31.362200392Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:31.362205609Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:31.362211600Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:31.362217652Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:31.362223559Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:31.365547080Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:31.365554392Z [err]        },
+2025-11-24T03:38:31.365559541Z [err]        [Symbol(lastWriteQueueSize)]: 0,
+2025-11-24T03:38:31.365564432Z [err]        [Symbol(timeout)]: null,
+2025-11-24T03:38:31.365569281Z [err]        [Symbol(kBuffer)]: null,
+2025-11-24T03:38:31.365574152Z [err]        [Symbol(kBufferCb)]: null,
+2025-11-24T03:38:31.365579668Z [err]        [Symbol(kBufferGen)]: null,
+2025-11-24T03:38:31.365584308Z [err]        [Symbol(shapeMode)]: true,
+2025-11-24T03:38:31.365588796Z [err]        [Symbol(kCapture)]: false,
+2025-11-24T03:38:31.365593849Z [err]        [Symbol(kSetNoDelay)]: false,
+2025-11-24T03:38:31.365598394Z [err]        [Symbol(kSetKeepAlive)]: true,
+2025-11-24T03:38:31.365603176Z [err]        [Symbol(kSetKeepAliveInitialDelay)]: 1,
+2025-11-24T03:38:31.365607862Z [err]        [Symbol(kBytesRead)]: 0,
+2025-11-24T03:38:31.365612948Z [err]        [Symbol(kBytesWritten)]: 0,
+2025-11-24T03:38:31.365618750Z [err]        [Symbol(connect-options)]: {
+2025-11-24T03:38:31.365623636Z [err]          rejectUnauthorized: true,
+2025-11-24T03:38:31.365631755Z [err]          ciphers: 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA',
+2025-11-24T03:38:31.365637693Z [err]          checkServerIdentity: [Function: checkServerIdentity],
+2025-11-24T03:38:31.365642570Z [err]          minDHSize: 1024,
+2025-11-24T03:38:31.365648144Z [err]          _events: [Object: null prototype] {
+2025-11-24T03:38:31.369356370Z [err]            error: [Function: bound ],
+2025-11-24T03:38:31.369368852Z [err]            complete: [Function: bound ],
+2025-11-24T03:38:31.369377657Z [err]            pipe: [Function (anonymous)],
+2025-11-24T03:38:31.369387751Z [err]            data: [Function (anonymous)],
+2025-11-24T03:38:31.369388996Z [err]          readable: true,
+2025-11-24T03:38:31.369392061Z [err]              _rp_reject: [Function (anonymous)],
+2025-11-24T03:38:31.369397266Z [err]            end: [Function (anonymous)]
+2025-11-24T03:38:31.369402195Z [err]          writable: true,
+2025-11-24T03:38:31.369408043Z [err]              _rp_promise: [Promise [Object]],
+2025-11-24T03:38:31.369411432Z [err]          },
+2025-11-24T03:38:31.369414421Z [err]          explicitMethod: true,
+2025-11-24T03:38:31.369421564Z [err]              _rp_callbackOrig: undefined,
+2025-11-24T03:38:31.369424614Z [err]              resolveWithFullResponse: true,
+2025-11-24T03:38:31.369427288Z [err]          _eventsCount: 3,
+2025-11-24T03:38:31.369428173Z [err]          _qs: <ref *3> Querystring {
+2025-11-24T03:38:31.369431617Z [err]              _rp_options: [Object],
+2025-11-24T03:38:31.369434050Z [err]              callback: [Function (anonymous)],
+2025-11-24T03:38:31.369438288Z [err]              forever: true,
+2025-11-24T03:38:31.369443266Z [err]            request: Request {
+2025-11-24T03:38:31.369444534Z [err]              headers: [Object],
+2025-11-24T03:38:31.369444797Z [err]          _maxListeners: undefined,
+2025-11-24T03:38:31.369448886Z [err]              uri: [Url],
+2025-11-24T03:38:31.369452396Z [err]              readable: true,
+2025-11-24T03:38:31.369454632Z [err]              _auth: [Auth],
+2025-11-24T03:38:31.369457078Z [err]              getHeader: [Function (anonymous)],
+2025-11-24T03:38:31.369459032Z [err]              _events: [Object: null prototype],
+2025-11-24T03:38:31.369459828Z [err]          method: 'POST',
+2025-11-24T03:38:31.369461895Z [err]              setHeader: [Function (anonymous)],
+2025-11-24T03:38:31.369466608Z [err]              proxy: null,
+2025-11-24T03:38:31.369470250Z [err]              _multipart: [Multipart],
+2025-11-24T03:38:31.369471352Z [err]              _eventsCount: 5,
+2025-11-24T03:38:31.369473207Z [err]              removeHeader: [Function (anonymous)],
+2025-11-24T03:38:31.369475389Z [err]              hasHeader: [Function (anonymous)],
+2025-11-24T03:38:31.369476926Z [err]              writable: true,
+2025-11-24T03:38:31.369483779Z [err]          simple: false,
+2025-11-24T03:38:31.369485772Z [err]              _redirect: [Redirect],
+2025-11-24T03:38:31.369486263Z [err]              _maxListeners: undefined,
+2025-11-24T03:38:31.369488646Z [err]              dests: [],
+2025-11-24T03:38:31.369489350Z [err]              localAddress: undefined,
+2025-11-24T03:38:31.369490058Z [err]              explicitMethod: true,
+2025-11-24T03:38:31.369499265Z [err]              method: 'POST',
+2025-11-24T03:38:31.369501462Z [err]              pool: [Object],
+2025-11-24T03:38:31.369501868Z [err]              _qs: [Circular *3],
+2025-11-24T03:38:31.369503042Z [err]              _tunnel: [Tunnel],
+2025-11-24T03:38:31.369505670Z [err]              __isRequestRequest: true,
+2025-11-24T03:38:31.369508941Z [err]              simple: false,
+2025-11-24T03:38:31.369514031Z [err]              _rp_resolve: [Function (anonymous)],
+2025-11-24T03:38:31.369515811Z [err]              _callback: [Function: RP$callback],
+2025-11-24T03:38:31.369531603Z [err]          resolveWithFullResponse: true,
+2025-11-24T03:38:31.369540760Z [err]          forever: true,
+2025-11-24T03:38:32.438868576Z [err]  Railway rate limit of 500 logs/sec reached for replica, update your application to reduce the logging rate. Messages dropped: 3717
+2025-11-24T03:38:34.254496069Z [err]              _secureContexnpm warn config production Use `--omit=dev` instead.
+2025-11-24T03:38:34.254503804Z [inf]  
+2025-11-24T03:38:34.254511420Z [inf]  > rest-express@1.0.0 start
+2025-11-24T03:38:34.254518595Z [inf]  > NODE_ENV=production node dist/index.js
+2025-11-24T03:38:34.254525912Z [inf]  
+2025-11-24T03:38:35.051702118Z [inf]  ✅ Telegram bot initialized successfully
+2025-11-24T03:38:35.051711783Z [inf]  3:38:34 AM [telegram] Telegram bot initialized successfully
+2025-11-24T03:38:35.051717324Z [inf]  3:38:34 AM [express] serving on port 8080
+2025-11-24T03:38:35.307354132Z [err]      at Async.drainQueues (/app/node_modules/bluebird/js/release/async.js:15:14)
+2025-11-24T03:38:35.307366906Z [err]      at process.processImmediate (node:internal/timers:485:21) {
+2025-11-24T03:38:35.307374730Z [err]    code: 'ETELEGRAM',
+2025-11-24T03:38:35.307381785Z [err]    response: <ref *8> IncomingMessage {
+2025-11-24T03:38:35.307388015Z [err]      _events: {
+2025-11-24T03:38:35.307402644Z [err]  /app/node_modules/node-telegram-bot-api/src/telegram.js:316
+2025-11-24T03:38:35.307409514Z [err]          throw new errors.TelegramError(`${data.error_code} ${data.description}`, resp);
+2025-11-24T03:38:35.307416139Z [err]                ^
+2025-11-24T03:38:35.307423149Z [err]  
+2025-11-24T03:38:35.307429564Z [err]  TelegramError: ETELEGRAM: 400 Bad Request: keyboard button Web App URL 'http://localhost:8080/driver.html' is invalid: Only HTTPS links are allowed
+2025-11-24T03:38:35.307438823Z [err]      at /app/node_modules/node-telegram-bot-api/src/telegram.js:316:15
+2025-11-24T03:38:35.307446324Z [err]      at tryCatcher (/app/node_modules/bluebird/js/release/util.js:16:23)
+2025-11-24T03:38:35.307451651Z [err]      at Promise._settlePromiseFromHandler (/app/node_modules/bluebird/js/release/promise.js:547:31)
+2025-11-24T03:38:35.307457696Z [err]      at Promise._settlePromise (/app/node_modules/bluebird/js/release/promise.js:604:18)
+2025-11-24T03:38:35.307464318Z [err]      at Promise._settlePromise0 (/app/node_modules/bluebird/js/release/promise.js:649:10)
+2025-11-24T03:38:35.307470352Z [err]      at Promise._settlePromises (/app/node_modules/bluebird/js/release/promise.js:729:18)
+2025-11-24T03:38:35.307476262Z [err]      at _drainQueueStep (/app/node_modules/bluebird/js/release/async.js:93:12)
+2025-11-24T03:38:35.307483449Z [err]      at _drainQueue (/app/node_modules/bluebird/js/release/async.js:86:9)
+2025-11-24T03:38:35.307489505Z [err]      at Async._drainQueues (/app/node_modules/bluebird/js/release/async.js:102:5)
+2025-11-24T03:38:35.309527773Z [err]        close: [ [Function (anonymous)], [Function (anonymous)] ],
+2025-11-24T03:38:35.309535932Z [err]      },
+2025-11-24T03:38:35.309538765Z [err]        error: [Function (anonymous)],
+2025-11-24T03:38:35.309545791Z [err]        data: [Function (anonymous)],
+2025-11-24T03:38:35.309549370Z [err]      _maxListeners: undefined,
+2025-11-24T03:38:35.309553162Z [err]        end: [ [Function: responseOnEnd], [Function (anonymous)] ],
+2025-11-24T03:38:35.309557947Z [err]      socket: null,
+2025-11-24T03:38:35.309560126Z [err]        readable: undefined
+2025-11-24T03:38:35.309566982Z [err]      },
+2025-11-24T03:38:35.309568308Z [err]      httpVersionMajor: 1,
+2025-11-24T03:38:35.309574097Z [err]      _readableState: ReadableState {
+2025-11-24T03:38:35.309577065Z [err]      httpVersionMinor: 1,
+2025-11-24T03:38:35.309581807Z [err]        highWaterMark: 65536,
+2025-11-24T03:38:35.309585394Z [err]      httpVersion: '1.1',
+2025-11-24T03:38:35.309588576Z [err]        buffer: [],
+2025-11-24T03:38:35.309593851Z [err]      complete: true,
+2025-11-24T03:38:35.309594477Z [err]        bufferIndex: 0,
+2025-11-24T03:38:35.309599874Z [err]        length: 0,
+2025-11-24T03:38:35.309602117Z [err]      rawHeaders: [
+2025-11-24T03:38:35.309605036Z [err]        pipes: [],
+2025-11-24T03:38:35.309609969Z [err]        'Server',
+2025-11-24T03:38:35.309610051Z [err]        awaitDrainWriters: null,
+2025-11-24T03:38:35.309617842Z [err]        [Symbol(kState)]: 194779004
+2025-11-24T03:38:35.309619202Z [err]        'nginx/1.18.0',
+2025-11-24T03:38:35.309625930Z [err]        'Date',
+2025-11-24T03:38:35.309632013Z [err]        'Mon, 24 Nov 2025 03:38:35 GMT',
+2025-11-24T03:38:35.309638030Z [err]        'Content-Type',
+2025-11-24T03:38:35.309644463Z [err]        'application/json',
+2025-11-24T03:38:35.309651245Z [err]        'Content-Length',
+2025-11-24T03:38:35.309657438Z [err]        '163',
+2025-11-24T03:38:35.310927808Z [err]      upgrade: false,
+2025-11-24T03:38:35.310932069Z [err]        'Connection',
+2025-11-24T03:38:35.310936978Z [err]      url: '',
+2025-11-24T03:38:35.310940071Z [err]        'keep-alive',
+2025-11-24T03:38:35.310945003Z [err]      method: null,
+2025-11-24T03:38:35.310946265Z [err]        'Strict-Transport-Security',
+2025-11-24T03:38:35.310953148Z [err]      statusCode: 400,
+2025-11-24T03:38:35.310953612Z [err]        'max-age=31536000; includeSubDomains; preload',
+2025-11-24T03:38:35.310959732Z [err]        'Access-Control-Allow-Origin',
+2025-11-24T03:38:35.310960689Z [err]      statusMessage: 'Bad Request',
+2025-11-24T03:38:35.310965371Z [err]        '*',
+2025-11-24T03:38:35.310968271Z [err]      client: <ref *1> TLSSocket {
+2025-11-24T03:38:35.310970321Z [err]        'Access-Control-Expose-Headers',
+2025-11-24T03:38:35.310975344Z [err]        'Content-Length,Content-Type,Date,Server,Connection'
+2025-11-24T03:38:35.310976268Z [err]        _tlsOptions: {
+2025-11-24T03:38:35.310981331Z [err]      ],
+2025-11-24T03:38:35.310983898Z [err]          allowHalfOpen: undefined,
+2025-11-24T03:38:35.310986519Z [err]      rawTrailers: [],
+2025-11-24T03:38:35.310991729Z [err]      joinDuplicateHeaders: undefined,
+2025-11-24T03:38:35.310992085Z [err]          pipe: false,
+2025-11-24T03:38:35.310996679Z [err]      aborted: false,
+2025-11-24T03:38:35.310999313Z [err]          secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:35.311005138Z [err]          isServer: false,
+2025-11-24T03:38:35.311010547Z [err]          requestCert: true,
+2025-11-24T03:38:35.311016306Z [err]          rejectUnauthorized: true,
+2025-11-24T03:38:35.311022393Z [err]          session: undefined,
+2025-11-24T03:38:35.311029776Z [err]          ALPNProtocols: undefined,
+2025-11-24T03:38:35.311036536Z [err]          requestOCSP: undefined,
+2025-11-24T03:38:35.312720170Z [err]            [Function: bound onceWrapper] {
+2025-11-24T03:38:35.312727887Z [err]              listener: [Function (anonymous)]
+2025-11-24T03:38:35.312733910Z [err]            },
+2025-11-24T03:38:35.312738453Z [err]            [Function: onClose]
+2025-11-24T03:38:35.312744180Z [err]          enableTrace: undefined,
+2025-11-24T03:38:35.312744326Z [err]          ],
+2025-11-24T03:38:35.312750509Z [err]          end: [Function: onReadableStreamEnd],
+2025-11-24T03:38:35.312752059Z [err]          pskCallback: undefined,
+2025-11-24T03:38:35.312756433Z [err]          error: [Function: bound onceWrapper] {
+2025-11-24T03:38:35.312761083Z [err]          highWaterMark: undefined,
+2025-11-24T03:38:35.312762076Z [err]            listener: [Function: freeSocketErrorListener]
+2025-11-24T03:38:35.312768177Z [err]          onread: undefined,
+2025-11-24T03:38:35.312774853Z [err]          signal: undefined
+2025-11-24T03:38:35.312779882Z [err]        },
+2025-11-24T03:38:35.312784806Z [err]        _secureEstablished: true,
+2025-11-24T03:38:35.312790917Z [err]        _securePending: false,
+2025-11-24T03:38:35.312795961Z [err]        _newSessionPending: false,
+2025-11-24T03:38:35.312801091Z [err]        _controlReleased: true,
+2025-11-24T03:38:35.312806210Z [err]        secureConnecting: false,
+2025-11-24T03:38:35.312811287Z [err]        _SNICallback: null,
+2025-11-24T03:38:35.312817641Z [err]        servername: 'api.telegram.org',
+2025-11-24T03:38:35.312822444Z [err]        alpnProtocol: false,
+2025-11-24T03:38:35.312827298Z [err]        authorized: true,
+2025-11-24T03:38:35.312832664Z [err]        authorizationError: null,
+2025-11-24T03:38:35.312837712Z [err]        encrypted: true,
+2025-11-24T03:38:35.312846793Z [err]        _events: [Object: null prototype] {
+2025-11-24T03:38:35.312852675Z [err]          close: [
+2025-11-24T03:38:35.312860277Z [err]            [Function: onSocketCloseDestroySSL],
+2025-11-24T03:38:35.313937838Z [err]          },
+2025-11-24T03:38:35.313942662Z [err]          newListener: [Function: keylogNewListener],
+2025-11-24T03:38:35.313947270Z [err]          connect: undefined,
+2025-11-24T03:38:35.313952369Z [err]          secure: [Function: onConnectSecure],
+2025-11-24T03:38:35.313953296Z [err]        _closeAfterHandlingError: false,
+2025-11-24T03:38:35.313957948Z [err]          session: [Function (anonymous)],
+2025-11-24T03:38:35.313962114Z [err]          free: [Function: onFree],
+2025-11-24T03:38:35.313966898Z [err]        _readableState: ReadableState {
+2025-11-24T03:38:35.313967692Z [err]          timeout: [Function: onTimeout],
+2025-11-24T03:38:35.313972964Z [err]          agentRemove: [Function: onRemove],
+2025-11-24T03:38:35.313974391Z [err]          highWaterMark: 65536,
+2025-11-24T03:38:35.313979489Z [err]          data: undefined,
+2025-11-24T03:38:35.313982531Z [err]          buffer: [],
+2025-11-24T03:38:35.313987077Z [err]          drain: undefined
+2025-11-24T03:38:35.313992396Z [err]          bufferIndex: 0,
+2025-11-24T03:38:35.313992526Z [err]        },
+2025-11-24T03:38:35.313998975Z [err]        _eventsCount: 9,
+2025-11-24T03:38:35.314000610Z [err]          length: 0,
+2025-11-24T03:38:35.314006843Z [err]        connecting: false,
+2025-11-24T03:38:35.314007131Z [err]          pipes: [],
+2025-11-24T03:38:35.314012161Z [err]        _hadError: false,
+2025-11-24T03:38:35.314012840Z [err]          awaitDrainWriters: null,
+2025-11-24T03:38:35.314017160Z [err]        _parent: null,
+2025-11-24T03:38:35.314020614Z [err]          [Symbol(kState)]: 60303620
+2025-11-24T03:38:35.314022203Z [err]        _host: 'api.telegram.org',
+2025-11-24T03:38:35.314026429Z [err]        },
+2025-11-24T03:38:35.314032336Z [err]        _writableState: WritableState {
+2025-11-24T03:38:35.314038096Z [err]          highWaterMark: 65536,
+2025-11-24T03:38:35.314044544Z [err]          length: 0,
+2025-11-24T03:38:35.315123026Z [err]        _sockname: null,
+2025-11-24T03:38:35.315129249Z [err]        _pendingData: null,
+2025-11-24T03:38:35.315134205Z [err]        _pendingEncoding: '',
+2025-11-24T03:38:35.315134659Z [err]          corked: 0,
+2025-11-24T03:38:35.315139944Z [err]        server: undefined,
+2025-11-24T03:38:35.315141848Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:35.315147793Z [err]        _server: null,
+2025-11-24T03:38:35.315149014Z [err]          onwrite: [Function: bound onwrite],
+2025-11-24T03:38:35.315150178Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:35.315154601Z [err]        ssl: <ref *2> TLSWrap {
+2025-11-24T03:38:35.315159426Z [err]          _parent: TCP {
+2025-11-24T03:38:35.315160213Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:35.315164578Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:35.315170105Z [err]            onconnection: null,
+2025-11-24T03:38:35.315170774Z [err]          },
+2025-11-24T03:38:35.315170832Z [err]          writelen: 0,
+2025-11-24T03:38:35.315177390Z [err]          _parentWrap: null,
+2025-11-24T03:38:35.315182145Z [err]          bufferedIndex: 0,
+2025-11-24T03:38:35.315186050Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:35.315191494Z [err]          pendingcb: 0,
+2025-11-24T03:38:35.315192966Z [err]          reading: true,
+2025-11-24T03:38:35.315200788Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:35.315200866Z [err]          [Symbol(kState)]: 17563908,
+2025-11-24T03:38:35.315208783Z [err]          [Symbol(kBufferedValue)]: null,
+2025-11-24T03:38:35.315215622Z [err]          [Symbol(kWriteCbValue)]: null
+2025-11-24T03:38:35.315222180Z [err]        },
+2025-11-24T03:38:35.315228686Z [err]        allowHalfOpen: false,
+2025-11-24T03:38:35.315234671Z [err]        _maxListeners: undefined,
+2025-11-24T03:38:35.316682321Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:35.316689031Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:35.316693411Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:35.316698084Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:35.316702005Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:35.317042808Z [err]        },
+2025-11-24T03:38:35.317050849Z [err]        _requestCert: true,
+2025-11-24T03:38:35.317057321Z [err]        _rejectUnauthorized: true,
+2025-11-24T03:38:35.317063631Z [err]        parser: null,
+2025-11-24T03:38:35.317069479Z [err]        _httpMessage: null,
+2025-11-24T03:38:35.317079229Z [err]        autoSelectFamilyAttemptedAddresses: [ '149.154.167.220:443' ],
+2025-11-24T03:38:35.317085848Z [err]        timeout: 0,
+2025-11-24T03:38:35.317091749Z [err]        [Symbol(alpncallback)]: null,
+2025-11-24T03:38:35.317444325Z [err]        [Symbol(res)]: <ref *2> TLSWrap {
+2025-11-24T03:38:35.317451388Z [err]          _parent: TCP {
+2025-11-24T03:38:35.317468458Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:35.317474616Z [err]            onconnection: null,
+2025-11-24T03:38:35.317479105Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:35.317483106Z [err]          },
+2025-11-24T03:38:35.317487686Z [err]          _parentWrap: null,
+2025-11-24T03:38:35.317491917Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:35.317495898Z [err]          reading: true,
+2025-11-24T03:38:35.317499708Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:35.317503712Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:35.317508455Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:35.318720984Z [err]          _parentWrap: null,
+2025-11-24T03:38:35.318732838Z [err]          _secureContext: SecureContext { context: SecureContext {} },
+2025-11-24T03:38:35.318742013Z [err]          reading: true,
+2025-11-24T03:38:35.318748639Z [err]          onkeylog: [Function: onkeylog],
+2025-11-24T03:38:35.318755085Z [err]          onhandshakestart: [Function: noop],
+2025-11-24T03:38:35.318761661Z [err]          onhandshakedone: [Function (anonymous)],
+2025-11-24T03:38:35.318768540Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:35.318773262Z [err]          onocspresponse: [Function: onocspresponse],
+2025-11-24T03:38:35.318775793Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:35.318782631Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:35.318784929Z [err]          onnewsession: [Function: onnewsessionclient],
+2025-11-24T03:38:35.318790419Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:35.318793238Z [err]          onerror: [Function: onerror],
+2025-11-24T03:38:35.318799987Z [err]          [Symbol(owner_symbol)]: [Circular *1],
+2025-11-24T03:38:35.318805857Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:35.318812260Z [err]        },
+2025-11-24T03:38:35.318818280Z [err]        [Symbol(verified)]: true,
+2025-11-24T03:38:35.318824082Z [err]        [Symbol(pendingSession)]: null,
+2025-11-24T03:38:35.318831542Z [err]        [Symbol(async_id_symbol)]: -1,
+2025-11-24T03:38:35.318838028Z [err]        [Symbol(kHandle)]: <ref *2> TLSWrap {
+2025-11-24T03:38:35.318843423Z [err]          _parent: TCP {
+2025-11-24T03:38:35.318848916Z [err]            reading: [Getter/Setter],
+2025-11-24T03:38:35.318854859Z [err]            onconnection: null,
+2025-11-24T03:38:35.318859534Z [err]            [Symbol(owner_symbol)]: [Circular *1]
+2025-11-24T03:38:35.318863982Z [err]          },
+2025-11-24T03:38:35.320381476Z [err]          ciphers: 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384:DHE-RSA-AES256-SHA384:ECDHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA256:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA',
+2025-11-24T03:38:35.320392672Z [err]          checkServerIdentity: [Function: checkServerIdentity],
+2025-11-24T03:38:35.320400142Z [err]          [Symbol(resource_symbol)]: ReusedHandle { type: 64, handle: [Circular *2] }
+2025-11-24T03:38:35.320400649Z [err]          minDHSize: 1024,
+2025-11-24T03:38:35.320409030Z [err]          _events: [Object: null prototype] {
+2025-11-24T03:38:35.320409036Z [err]        },
+2025-11-24T03:38:35.320416258Z [err]        [Symbol(lastWriteQueueSize)]: 0,
+2025-11-24T03:38:35.320421903Z [err]        [Symbol(timeout)]: null,
+2025-11-24T03:38:35.320427246Z [err]        [Symbol(kBuffer)]: null,
+2025-11-24T03:38:35.320432474Z [err]        [Symbol(kBufferCb)]: null,
+2025-11-24T03:38:35.320438731Z [err]        [Symbol(kBufferGen)]: null,
+2025-11-24T03:38:35.320445635Z [err]        [Symbol(shapeMode)]: true,
+2025-11-24T03:38:35.320451196Z [err]        [Symbol(kCapture)]: false,
+2025-11-24T03:38:35.320456615Z [err]        [Symbol(kSetNoDelay)]: false,
+2025-11-24T03:38:35.320464528Z [err]        [Symbol(kSetKeepAlive)]: true,
+2025-11-24T03:38:35.320470104Z [err]        [Symbol(kSetKeepAliveInitialDelay)]: 1,
+2025-11-24T03:38:35.320475560Z [err]        [Symbol(kBytesRead)]: 0,
+2025-11-24T03:38:35.320482309Z [err]        [Symbol(kBytesWritten)]: 0,
+2025-11-24T03:38:35.320488112Z [err]        [Symbol(connect-options)]: {
+2025-11-24T03:38:35.320493498Z [err]          rejectUnauthorized: true,
+2025-11-24T03:38:35.321966847Z [err]              _eventsCount: 5,
+2025-11-24T03:38:35.321969914Z [err]            error: [Function: bound ],
+2025-11-24T03:38:35.321976087Z [err]              _maxListeners: undefined,
+2025-11-24T03:38:35.321980870Z [err]            complete: [Function: bound ],
+2025-11-24T03:38:35.321982484Z [err]              method: 'POST',
+2025-11-24T03:38:35.321988806Z [err]              simple: false,
+2025-11-24T03:38:35.321989292Z [err]            pipe: [Function (anonymous)],
+2025-11-24T03:38:35.321995434Z [err]              resolveWithFullResponse: true,
+2025-11-24T03:38:35.321996965Z [err]            data: [Function (anonymous)],
+2025-11-24T03:38:35.322002244Z [err]              forever: true,
+2025-11-24T03:38:35.322004735Z [err]            end: [Function (anonymous)]
+2025-11-24T03:38:35.322007631Z [err]              readable: true,
+2025-11-24T03:38:35.322013246Z [err]          },
+2025-11-24T03:38:35.322013344Z [err]              writable: true,
+2025-11-24T03:38:35.322019372Z [err]              explicitMethod: true,
+2025-11-24T03:38:35.322022370Z [err]          _eventsCount: 3,
+2025-11-24T03:38:35.322027892Z [err]          _maxListeners: undefined,
+2025-11-24T03:38:35.322033510Z [err]          method: 'POST',
+2025-11-24T03:38:35.322040217Z [err]          simple: false,
+2025-11-24T03:38:35.322041413Z [err]              _qs: [Circular *3],
+2025-11-24T03:38:35.322049152Z [err]          resolveWithFullResponse: true,
+2025-11-24T03:38:35.322054595Z [err]          forever: true,
+2025-11-24T03:38:35.322059952Z [err]          readable: true,
+2025-11-24T03:38:35.322065800Z [err]          writable: true,
+2025-11-24T03:38:35.322071192Z [err]          explicitMethod: true,
+2025-11-24T03:38:35.322077561Z [err]          _qs: <ref *3> Querystring {
+2025-11-24T03:38:35.322083113Z [err]            request: Request {
+2025-11-24T03:38:35.322088791Z [err]              _events: [Object: null prototype],
+2025-11-24T03:38:35.323857241Z [err]              headers: [Object],
+2025-11-24T03:38:35.323869441Z [err]              _auth: [Auth],
+2025-11-24T03:38:35.323869691Z [err]              setHeader: [Function (anonymous)],
+2025-11-24T03:38:35.323877421Z [err]              hasHeader: [Function (anonymous)],
+2025-11-24T03:38:35.323886349Z [err]              _multipart: [Multipart],
+2025-11-24T03:38:35.323886787Z [err]              getHeader: [Function (anonymous)],
+2025-11-24T03:38:35.323893949Z [err]              _redirect: [Redirect],
+2025-11-24T03:38:35.323895969Z [err]              removeHeader: [Function (anonymous)],
+2025-11-24T03:38:35.323901346Z [err]              _tunnel: [Tunnel],
+2025-11-24T03:38:35.323903739Z [err]              localAddress: undefined,
+2025-11-24T03:38:35.323906810Z [err]              _rp_resolve: [Function (anonymous)],
+2025-11-24T03:38:35.323911143Z [err]              pool: [Object],
+2025-11-24T03:38:35.323913989Z [err]              _rp_reject: [Function (anonymous)],
+2025-11-24T03:38:35.323918581Z [err]              dests: [],
+2025-11-24T03:38:35.323919993Z [err]              _rp_promise: [Promise [Object]],
+2025-11-24T03:38:35.323924612Z [err]              _rp_callbackOrig: undefined,
+2025-11-24T03:38:35.323928930Z [err]              callback: [Function (anonymous)],
+2025-11-24T03:38:35.323933156Z [err]              _rp_options: [Object],
+2025-11-24T03:38:35.324189218Z [err]              __isRequestRequest: true,
+2025-11-24T03:38:35.324196695Z [err]              _callback: [Function: RP$callback],
+2025-11-24T03:38:35.324204294Z [err]              uri: [Url],
+2025-11-24T03:38:35.324210114Z [err]              proxy: null,
+2025-11-24T03:38:35.324216043Z [err]              tunnel: true,
+2025-11-24T03:38:35.324221642Z [err]              setHost: true,
+2025-11-24T03:38:35.324229419Z [err]              originalCookieHeader: undefined,
+2025-11-24T03:38:35.324233599Z [err]              _disableCookies: true,
+2025-11-24T03:38:35.325436087Z [err]              _jar: undefined,
+2025-11-24T03:38:35.325442866Z [err]              [Symbol(kCapture)]: false
+2025-11-24T03:38:35.325448800Z [err]            },
+2025-11-24T03:38:35.325453644Z [err]              port: 443,
+2025-11-24T03:38:35.325454511Z [err]              href: 'https://api.telegram.org/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:35.325461860Z [err]              host: 'api.telegram.org',
+2025-11-24T03:38:35.325462125Z [err]            lib: {
+2025-11-24T03:38:35.325466215Z [err]              req: [ClientRequest],
+2025-11-24T03:38:35.325470431Z [err]              body: 'offset=0&timeout=10',
+2025-11-24T03:38:35.325474350Z [err]              formats: [Object],
+2025-11-24T03:38:35.325474725Z [err]              ntick: true,
+2025-11-24T03:38:35.325478833Z [err]              path: '/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:35.325482468Z [err]              response: [IncomingMessage],
+2025-11-24T03:38:35.325488434Z [err]              httpModule: [Object],
+2025-11-24T03:38:35.325490814Z [err]              originalHost: 'api.telegram.org',
+2025-11-24T03:38:35.325496592Z [err]              agentClass: [Function: Agent],
+2025-11-24T03:38:35.325499454Z [err]              originalHostHeaderName: 'host',
+2025-11-24T03:38:35.325504730Z [err]              agentOptions: [Object],
+2025-11-24T03:38:35.325507131Z [err]              responseContent: [IncomingMessage],
+2025-11-24T03:38:35.325512860Z [err]              agent: [Agent],
+2025-11-24T03:38:35.325515718Z [err]              _destdata: true,
+2025-11-24T03:38:35.325522566Z [err]              _started: true,
+2025-11-24T03:38:35.325522839Z [err]              _ended: true,
+2025-11-24T03:38:35.325529858Z [err]              _callbackCalled: true,
+2025-11-24T03:38:35.325537715Z [err]              [Symbol(shapeMode)]: false,
+2025-11-24T03:38:35.327040413Z [err]              parse: [Function (anonymous)],
+2025-11-24T03:38:35.327049288Z [err]              stringify: [Function (anonymous)]
+2025-11-24T03:38:35.327049939Z [err]              _rp_promise: [Promise [Object]],
+2025-11-24T03:38:35.327057996Z [err]            },
+2025-11-24T03:38:35.327061725Z [err]              readable: true,
+2025-11-24T03:38:35.327064619Z [err]            useQuerystring: undefined,
+2025-11-24T03:38:35.327071033Z [err]            parseOptions: {},
+2025-11-24T03:38:35.327073966Z [err]              writable: true,
+2025-11-24T03:38:35.327077818Z [err]            stringifyOptions: {}
+2025-11-24T03:38:35.327082656Z [err]              explicitMethod: true,
+2025-11-24T03:38:35.327084887Z [err]          },
+2025-11-24T03:38:35.327090379Z [err]              _qs: [Querystring],
+2025-11-24T03:38:35.327092805Z [err]          _auth: <ref *4> Auth {
+2025-11-24T03:38:35.327098396Z [err]              _auth: [Circular *4],
+2025-11-24T03:38:35.327099685Z [err]            request: Request {
+2025-11-24T03:38:35.327107716Z [err]              _multipart: [Multipart],
+2025-11-24T03:38:35.327107908Z [err]              _events: [Object: null prototype],
+2025-11-24T03:38:35.327116073Z [err]              _redirect: [Redirect],
+2025-11-24T03:38:35.327117481Z [err]              _eventsCount: 5,
+2025-11-24T03:38:35.327124173Z [err]              _maxListeners: undefined,
+2025-11-24T03:38:35.327125810Z [err]              _tunnel: [Tunnel],
+2025-11-24T03:38:35.327132896Z [err]              _rp_resolve: [Function (anonymous)],
+2025-11-24T03:38:35.327134224Z [err]              method: 'POST',
+2025-11-24T03:38:35.327140417Z [err]              _rp_reject: [Function (anonymous)],
+2025-11-24T03:38:35.327141414Z [err]              simple: false,
+2025-11-24T03:38:35.327147257Z [err]              resolveWithFullResponse: true,
+2025-11-24T03:38:35.327153282Z [err]              forever: true,
+2025-11-24T03:38:35.328422518Z [err]              agentClass: [Function: Agent],
+2025-11-24T03:38:35.328422641Z [err]              localAddress: undefined,
+2025-11-24T03:38:35.328432233Z [err]              pool: [Object],
+2025-11-24T03:38:35.328435684Z [err]              _rp_callbackOrig: undefined,
+2025-11-24T03:38:35.328437156Z [err]              host: 'api.telegram.org',
+2025-11-24T03:38:35.328440651Z [err]              dests: [],
+2025-11-24T03:38:35.328444102Z [err]              body: 'offset=0&timeout=10',
+2025-11-24T03:38:35.328446734Z [err]              callback: [Function (anonymous)],
+2025-11-24T03:38:35.328450377Z [err]              __isRequestRequest: true,
+2025-11-24T03:38:35.328451028Z [err]              path: '/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:35.328455678Z [err]              _rp_options: [Object],
+2025-11-24T03:38:35.328457332Z [err]              httpModule: [Object],
+2025-11-24T03:38:35.328460510Z [err]              _callback: [Function: RP$callback],
+2025-11-24T03:38:35.328464707Z [err]              headers: [Object],
+2025-11-24T03:38:35.328468225Z [err]              uri: [Url],
+2025-11-24T03:38:35.328474931Z [err]              proxy: null,
+2025-11-24T03:38:35.328476803Z [err]              setHeader: [Function (anonymous)],
+2025-11-24T03:38:35.328482433Z [err]              tunnel: true,
+2025-11-24T03:38:35.328484716Z [err]              hasHeader: [Function (anonymous)],
+2025-11-24T03:38:35.328489574Z [err]              setHost: true,
+2025-11-24T03:38:35.328492279Z [err]              getHeader: [Function (anonymous)],
+2025-11-24T03:38:35.328496729Z [err]              originalCookieHeader: undefined,
+2025-11-24T03:38:35.328502258Z [err]              removeHeader: [Function (anonymous)],
+2025-11-24T03:38:35.328505710Z [err]              _disableCookies: true,
+2025-11-24T03:38:35.328512317Z [err]              _jar: undefined,
+2025-11-24T03:38:35.328517385Z [err]              port: 443,
+2025-11-24T03:38:35.330472920Z [err]              agentOptions: [Object],
+2025-11-24T03:38:35.330474973Z [err]            sentAuth: false,
+2025-11-24T03:38:35.330480824Z [err]              agent: [Agent],
+2025-11-24T03:38:35.330482776Z [err]            bearerToken: null,
+2025-11-24T03:38:35.330486731Z [err]              _started: true,
+2025-11-24T03:38:35.330488555Z [err]            user: null,
+2025-11-24T03:38:35.330491851Z [err]              href: 'https://api.telegram.org/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:35.330494477Z [err]            pass: null
+2025-11-24T03:38:35.330500011Z [err]              req: [ClientRequest],
+2025-11-24T03:38:35.330500976Z [err]          },
+2025-11-24T03:38:35.330507804Z [err]              ntick: true,
+2025-11-24T03:38:35.330510425Z [err]          _multipart: <ref *5> Multipart {
+2025-11-24T03:38:35.330513284Z [err]              response: [IncomingMessage],
+2025-11-24T03:38:35.330516146Z [err]            request: Request {
+2025-11-24T03:38:35.330518954Z [err]              originalHost: 'api.telegram.org',
+2025-11-24T03:38:35.330521734Z [err]              _events: [Object: null prototype],
+2025-11-24T03:38:35.330524740Z [err]              originalHostHeaderName: 'host',
+2025-11-24T03:38:35.330527612Z [err]              _eventsCount: 5,
+2025-11-24T03:38:35.330530817Z [err]              responseContent: [IncomingMessage],
+2025-11-24T03:38:35.330534129Z [err]              _maxListeners: undefined,
+2025-11-24T03:38:35.330538174Z [err]              _destdata: true,
+2025-11-24T03:38:35.330543959Z [err]              _ended: true,
+2025-11-24T03:38:35.330547880Z [err]              _callbackCalled: true,
+2025-11-24T03:38:35.330551712Z [err]              [Symbol(shapeMode)]: false,
+2025-11-24T03:38:35.330555585Z [err]              [Symbol(kCapture)]: false
+2025-11-24T03:38:35.330559753Z [err]            },
+2025-11-24T03:38:35.330564041Z [err]            hasAuth: false,
+2025-11-24T03:38:35.332262710Z [err]              getHeader: [Function (anonymous)],
+2025-11-24T03:38:35.332272320Z [err]              removeHeader: [Function (anonymous)],
+2025-11-24T03:38:35.332279221Z [err]              localAddress: undefined,
+2025-11-24T03:38:35.332285950Z [err]              pool: [Object],
+2025-11-24T03:38:35.332292817Z [err]              dests: [],
+2025-11-24T03:38:35.332305768Z [err]              method: 'POST',
+2025-11-24T03:38:35.332312005Z [err]              simple: false,
+2025-11-24T03:38:35.332318211Z [err]              resolveWithFullResponse: true,
+2025-11-24T03:38:35.332324356Z [err]              forever: true,
+2025-11-24T03:38:35.332331049Z [err]              readable: true,
+2025-11-24T03:38:35.332338152Z [err]              writable: true,
+2025-11-24T03:38:35.332346608Z [err]              explicitMethod: true,
+2025-11-24T03:38:35.332352961Z [err]              _qs: [Querystring],
+2025-11-24T03:38:35.332359622Z [err]              _auth: [Auth],
+2025-11-24T03:38:35.332367069Z [err]              _multipart: [Circular *5],
+2025-11-24T03:38:35.332372889Z [err]              _redirect: [Redirect],
+2025-11-24T03:38:35.332380806Z [err]              _tunnel: [Tunnel],
+2025-11-24T03:38:35.332386107Z [err]              _rp_resolve: [Function (anonymous)],
+2025-11-24T03:38:35.332392531Z [err]              _rp_reject: [Function (anonymous)],
+2025-11-24T03:38:35.332400202Z [err]              _rp_promise: [Promise [Object]],
+2025-11-24T03:38:35.332406896Z [err]              _rp_callbackOrig: undefined,
+2025-11-24T03:38:35.332412284Z [err]              callback: [Function (anonymous)],
+2025-11-24T03:38:35.332418169Z [err]              _rp_options: [Object],
+2025-11-24T03:38:35.332423719Z [err]              headers: [Object],
+2025-11-24T03:38:35.332429473Z [err]              setHeader: [Function (anonymous)],
+2025-11-24T03:38:35.332439858Z [err]              hasHeader: [Function (anonymous)],
+2025-11-24T03:38:35.335273385Z [err]              responseContent: [IncomingMessage],
+2025-11-24T03:38:35.335289113Z [err]              __isRequestRequest: true,
+2025-11-24T03:38:35.335294725Z [err]              _callback: [Function: RP$callback],
+2025-11-24T03:38:35.335300693Z [err]              uri: [Url],
+2025-11-24T03:38:35.335306796Z [err]              proxy: null,
+2025-11-24T03:38:35.335311831Z [err]              tunnel: true,
+2025-11-24T03:38:35.335318356Z [err]              setHost: true,
+2025-11-24T03:38:35.335323462Z [err]              originalCookieHeader: undefined,
+2025-11-24T03:38:35.335339615Z [err]              _disableCookies: true,
+2025-11-24T03:38:35.335345219Z [err]              _jar: undefined,
+2025-11-24T03:38:35.335417899Z [err]              port: 443,
+2025-11-24T03:38:35.335427445Z [err]              host: 'api.telegram.org',
+2025-11-24T03:38:35.335434270Z [err]              body: 'offset=0&timeout=10',
+2025-11-24T03:38:35.335440764Z [err]              path: '/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:35.335447067Z [err]              httpModule: [Object],
+2025-11-24T03:38:35.335453063Z [err]              agentClass: [Function: Agent],
+2025-11-24T03:38:35.335458679Z [err]              agentOptions: [Object],
+2025-11-24T03:38:35.335466963Z [err]              agent: [Agent],
+2025-11-24T03:38:35.335473150Z [err]              _started: true,
+2025-11-24T03:38:35.335478741Z [err]              href: 'https://api.telegram.org/bot8553266267:AAEd0CrLpjMdN_Fj2ISkAM2WtN4SBpVODsE/getUpdates',
+2025-11-24T03:38:35.335484647Z [err]              req: [ClientRequest],
+2025-11-24T03:38:35.335490071Z [err]              ntick: true,
+2025-11-24T03:38:35.335495716Z [err]              response: [IncomingMessage],
+2025-11-24T03:38:35.335501616Z [err]              originalHost: 'api.telegram.org',
+2025-11-24T03:38:35.335508536Z [err]              originalHostHeaderName: 'host',
+2025-11-24T03:38:35.336588465Z [err]              _destdata: true,
+2025-11-24T03:38:35.336602094Z [err]              _ended: true,
+2025-11-24T03:38:35.336609271Z [err]              _callbackCalled: true,
+2025-11-24T03:38:35.336618074Z [err]              [Symbol(shapeMode)]: false,
+2025-11-24T03:38:35.336624057Z [err]              [Symbol(kCapture)]: false
+2025-11-24T03:38:35.336637090Z [err]            },
+2025-11-24T03:38:35.336643272Z [err]            boundary: '6f2b49f4-b5d2-4395-9318-3223488e216d',
+2025-11-24T03:38:35.336648957Z [err]            chunked: false,
+2025-11-24T03:38:35.336655090Z [err]            body: null
+2025-11-24T03:38:35.336660941Z [err]          },
+2025-11-24T03:38:35.336668280Z [err]          _redirect: <ref *6> Redirect {
+2025-11-24T03:38:35.336675266Z [err]            request: Request {

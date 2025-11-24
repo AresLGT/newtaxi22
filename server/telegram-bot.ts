@@ -3,7 +3,7 @@ import type { IStorage } from './storage';
 import type { User, Order } from '@shared/schema';
 
 const ADMIN_ID = process.env.ADMIN_ID || '7677921905';
-const WEB_APP_URL = "https://newtaxi22-production.up.railway.app";
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://newtaxi22-production.up.railway.app";
 
 interface DriverStats {
   completedOrders: number;
@@ -187,19 +187,19 @@ export function initTelegramBot(storage: IStorage) {
     if (user.role === 'admin') {
       text = `Вітаю, ${firstName}! 👑\n\nВи Адміністратор і Водій.\n\n<b>Команди:</b>\n/generate - Згенерувати коди\n/codes - Невикористані коди\n/drivers - Список водіїв\n/stats - Статистика\n/setname ID ІМ'Я - Змінити ім'я`;
       keyboard = [
-        [{ text: '💼 Я водій', web_app: { url: WEB_APP_URL + '/driver.html' } }],
-        [{ text: '🙋‍♂️ Я клієнт', web_app: { url: WEB_APP_URL + '/client.html' } }],
-        [{ text: '📊 Панель адміна', web_app: { url: WEB_APP_URL + '/admin.html' } }]
+        [{ text: '💼 Я водій', web_app: { url: WEB_APP_URL + '/driver' } }],
+        [{ text: '🙋‍♂️ Я клієнт', web_app: { url: WEB_APP_URL + '/client' } }],
+        [{ text: '📊 Панель адміна', web_app: { url: WEB_APP_URL + '/admin' } }]
       ];
     } else if (user.role === 'driver') {
       text = `Привіт, ${firstName}! 🚖\n\nВи водій. Приймайте замовлення та заробляйте!`;
       keyboard = [
-        [{ text: '💼 Приймати замовлення', web_app: { url: WEB_APP_URL + '/driver.html' } }],
-        [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + '/client.html' } }]
+        [{ text: '💼 Приймати замовлення', web_app: { url: WEB_APP_URL + '/driver' } }],
+        [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + '/client' } }]
       ];
     } else {
       text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nДля реєстрації як водій - введіть код доступу (8 символів).`;
-      keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + '/client.html' } }]];
+      keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + '/client' } }]];
     }
     
     await bot.sendMessage(msg.chat.id, text, { 
