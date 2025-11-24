@@ -3,9 +3,10 @@ import type { IStorage } from './storage';
 import type { User, Order } from '@shared/schema';
 
 const ADMIN_ID = process.env.ADMIN_ID || '7677921905';
-const WEB_APP_URL = process.env.WEB_APP_URL || process.env.REPL_SLUG 
-  ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-  : `http://localhost:${process.env.PORT || 5000}`;
+const WEB_APP_URL = process.env.WEB_APP_URL 
+  || (process.env.REPL_SLUG && process.env.REPL_OWNER 
+    ? `https://${process.env.REPL_SLUG}-${process.env.REPL_OWNER}.repl.co`
+    : `http://localhost:${process.env.PORT || 5000}`);
 
 interface DriverStats {
   completedOrders: number;
