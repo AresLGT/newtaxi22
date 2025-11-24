@@ -117,8 +117,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(order);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid request" });
+    } catch (error: any) {
+      console.error("Error accepting order:", error);
+      res.status(400).json({ error: error?.message || "Invalid request" });
     }
   });
 

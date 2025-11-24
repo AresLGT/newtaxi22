@@ -48,31 +48,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        console.log("🔐 Initializing user with ID:", telegramUserId, "asRole:", asRole);
-
         // Fetch user role from backend
         try {
           const response = await fetch(`/api/users/${telegramUserId}`);
-          console.log("📡 User fetch response:", response.status);
           
           if (response.ok) {
             const user = await response.json();
-            console.log("✅ User loaded:", user.role, user.id);
             
-            // If asRole is specified and user is admin, use asRole
-            const finalRole = (asRole && user.role === "admin") ? asRole : user.role;
-            console.log("🎭 Final role:", finalRole);
+            // If asRole is specified, use it (for testing purposes or when admin switches roles)
+            const finalRole = asRole || user.role;
             
             setRole(finalRole);
             setUserIdState(user.id);
           } else {
             // User doesn't exist yet, create as client
-            console.log("ℹ️ User not found, setting as client");
             setUserIdState(telegramUserId.toString());
             setRole(asRole || "client");
           }
         } catch (error) {
-          console.error("❌ Error fetching user:", error);
           setUserIdState(telegramUserId.toString());
           setRole(asRole || "client");
         }

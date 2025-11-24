@@ -28,7 +28,7 @@ export interface IStorage {
   getOrdersByDriver(driverId: string): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined>;
-  acceptOrder(orderId: string, driverId: string): Promise<Order | undefined>;
+  acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined>;
 
   // Access Code methods
   generateAccessCode(issuedBy: string): Promise<AccessCode>;
