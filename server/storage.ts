@@ -203,7 +203,7 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  async acceptOrder(orderId: string, driverId: string): Promise<Order | undefined> {
+  async acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order || order.status !== "pending") return undefined;
 
@@ -212,10 +212,11 @@ export class MemStorage implements IStorage {
       return undefined;
     }
 
-    const updatedOrder = {
+    const updatedOrder: Order = {
       ...order,
       driverId,
-      status: "accepted" as const,
+      status: "accepted",
+      distanceKm: distanceKm ?? order.distanceKm,
     };
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
