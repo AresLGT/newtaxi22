@@ -42,6 +42,9 @@ export default function DriverDashboard() {
   const { userId: driverId, role } = useUser();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [distanceDialog, setDistanceDialog] = useState(false);
+  
+  // Локальний стан для миттєвого відображення активного замовлення
+  const [manualActiveOrder, setManualActiveOrder] = useState<Order | null>(null);
 
   // Защита маршруту
   useEffect(() => {
@@ -53,17 +56,18 @@ export default function DriverDashboard() {
   // 1. Отримуємо загальний список активних замовлень
   const { data: activeOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
-    refetchInterval: 3000,
+    refetchInterval: 2000,
   });
 
   // 2. Отримуємо поточне замовлення водія
   const { data: currentOrders = [], isLoading: isLoadingCurrent } = useQuery<Order[]>({
     queryKey: [`/api/orders/driver/${driverId}/current`],
     enabled: !!driverId,
-    refetchInterval: 2000,
+    refetchInterval: 1000, // Перевіряємо кожну секунду
   });
 
-  const currentOrder = currentOrders[0];
+  // Визначаємо, яке замовлення показувати (пріоритет у завантаженого з сервера, або того, що ми щойно прийняли)
+  const currentOrder = currentOrders[0] || manualActiveOrder;
 
   const distanceForm = useForm<z.infer<typeof distanceSchema>>({
     resolver: zodResolver(distanceSchema),
@@ -82,9 +86,13 @@ export default function DriverDashboard() {
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error);
-      return data;
+      return data as Order;
     },
-    onSuccess: () => {
+    onSuccess: (acceptedOrder) => {
+      // 1. Миттєво оновлюємо інтерфейс, не чекаючи сервера
+      setManualActiveOrder(acceptedOrder);
+      
+      // 2. Оновлюємо дані в фоні
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
       queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
       
@@ -109,7 +117,12 @@ export default function DriverDashboard() {
       return response.json();
     },
     onSuccess: () => {
+      // Очищаємо локальне замовлення
+      setManualActiveOrder(null);
+      
       queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      
       toast({ title: "Поїздку завершено!", description: "Можна брати нові замовлення." });
     },
     onError: () => {
@@ -141,57 +154,65 @@ export default function DriverDashboard() {
   if (currentOrder) {
     return (
       <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
-        <Card className="w-full max-w-md border-primary border-2 shadow-lg">
+        <Card className="w-full max-w-md border-primary border-2 shadow-lg animate-in fade-in zoom-in duration-300">
           <CardHeader className="bg-primary/10 pb-4">
             <div className="flex justify-between items-center mb-2">
-               <Badge className="bg-green-600 hover:bg-green-700 text-white animate-pulse">
-                 В роботі
+               <Badge className="bg-green-600 hover:bg-green-700 text-white animate-pulse px-3 py-1 text-sm">
+                 🟢 В РОБОТІ
                </Badge>
-               <span className="font-bold text-lg">{currentOrder.price} грн</span>
+               <span className="font-bold text-xl">{currentOrder.price} грн</span>
             </div>
-            <CardTitle className="text-xl">Поточне замовлення</CardTitle>
+            <CardTitle className="text-xl text-center pt-2">Маршрут поїздки</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
+            
+            {/* Маршрут */}
             <div className="space-y-4">
-              <div className="flex gap-3">
+              <div className="flex gap-4 items-stretch">
                 <div className="flex flex-col items-center">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <div className="w-0.5 h-full bg-border my-1" />
-                  <Navigation className="w-5 h-5 text-primary" />
+                  <div className="w-3 h-3 rounded-full bg-green-500 mt-2" />
+                  <div className="w-0.5 flex-1 bg-border my-1" />
+                  <div className="w-3 h-3 rounded-full bg-red-500 mb-2" />
                 </div>
-                <div className="space-y-4 flex-1">
+                <div className="space-y-6 flex-1 py-1">
                   <div>
-                    <p className="text-xs text-muted-foreground">Забрати клієнта:</p>
-                    <p className="font-medium text-lg leading-tight">{currentOrder.from}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Забрати клієнта:</p>
+                    <p className="font-medium text-lg leading-tight mt-1">{currentOrder.from}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Відвезти до:</p>
-                    <p className="font-medium text-lg leading-tight">{currentOrder.to}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Відвезти до:</p>
+                    <p className="font-medium text-lg leading-tight mt-1">{currentOrder.to}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-muted p-3 rounded-lg space-y-2 text-sm">
-               <div className="flex justify-between">
-                 <span>Дистанція:</span>
-                 <span className="font-medium">{currentOrder.distanceKm} км</span>
+            <div className="bg-muted p-4 rounded-xl space-y-3 text-sm border border-border/50">
+               <div className="flex justify-between items-center">
+                 <span className="text-muted-foreground">Дистанція:</span>
+                 <span className="font-bold text-foreground text-base">{currentOrder.distanceKm} км</span>
                </div>
                {currentOrder.comment && (
                  <div className="pt-2 border-t border-border mt-2">
-                   <p className="text-muted-foreground text-xs">Коментар:</p>
-                   <p>{currentOrder.comment}</p>
+                   <p className="text-muted-foreground text-xs mb-1">Коментар клієнта:</p>
+                   <p className="italic">{currentOrder.comment}</p>
                  </div>
                )}
             </div>
 
             <Button 
-              className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700 text-white"
+              className="w-full h-16 text-lg font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 transition-all hover:scale-[1.02]"
               onClick={() => completeOrderMutation.mutate(currentOrder.orderId)}
               disabled={completeOrderMutation.isPending}
             >
-              {completeOrderMutation.isPending ? "Завершення..." : "Завершити поїздку"}
-              <CheckCircle2 className="ml-2 w-6 h-6" />
+              {completeOrderMutation.isPending ? (
+                "Завершення..."
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <span>ЗАВЕРШИТИ ЗАМОВЛЕННЯ</span>
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+              )}
             </Button>
           </CardContent>
         </Card>
@@ -205,7 +226,6 @@ export default function DriverDashboard() {
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            {/* Кнопка "Назад" видалена */}
             <div className="flex-1">
               <h1 className="text-lg font-semibold">Активні замовлення</h1>
               <p className="text-xs text-muted-foreground">Виберіть замовлення для роботи</p>
@@ -224,7 +244,7 @@ export default function DriverDashboard() {
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         <Button
-          className="w-full"
+          className="w-full h-12 border-dashed border-2"
           variant="outline"
           onClick={() => setLocation("/")}
           data-testid="button-create-order-as-client"
@@ -248,50 +268,54 @@ export default function DriverDashboard() {
             ))}
           </div>
         ) : activeOrders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
-              <MapPin className="w-8 h-8 text-muted-foreground opacity-40" />
+          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+            <div className="w-20 h-20 mb-4 rounded-full bg-muted flex items-center justify-center animate-pulse">
+              <MapPin className="w-10 h-10 text-muted-foreground opacity-40" />
             </div>
-            <p className="text-base text-muted-foreground">Немає нових замовлень</p>
-            <p className="text-sm text-muted-foreground mt-1">Очікуйте...</p>
+            <p className="text-lg font-medium text-foreground">Немає доступних замовлень</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+              Нові замовлення з'являться тут автоматично, як тільки клієнти їх створять.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
             {activeOrders.map((order) => (
               <Card
                 key={order.orderId}
-                className="border-card-border"
+                className="border-card-border hover:border-primary/50 transition-colors"
               >
                 <CardHeader className="space-y-3 pb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-semibold">
+                    <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide">
                       {orderTypeLabels[order.type]}
                     </Badge>
                     {order.price && (
-                      <Badge variant="default" className="rounded-full px-3 py-1 text-xs gap-1">
+                      <Badge variant="default" className="rounded-full px-3 py-1 text-xs gap-1 bg-green-600">
                         <DollarSign className="w-3 h-3" />
                         {order.price} грн
                       </Badge>
                     )}
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm flex-1">
-                        <span className="font-medium">Звідки:</span> {order.from}
+                        <span className="font-bold block text-muted-foreground text-xs mb-0.5">ЗВІДКИ</span>
+                        {order.from}
                       </div>
                     </div>
-                    <div className="flex items-start gap-2">
-                      <Navigation className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <div className="flex items-start gap-3">
+                      <Navigation className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm flex-1">
-                        <span className="font-medium">Куди:</span> {order.to}
+                        <span className="font-bold block text-muted-foreground text-xs mb-0.5">КУДИ</span>
+                        {order.to}
                       </div>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 pb-4">
                   <Button
-                    className="w-full h-12 font-semibold"
+                    className="w-full h-12 font-bold text-base"
                     onClick={() => handleAcceptOrder(order)}
                     disabled={acceptOrderMutation.isPending}
                   >
@@ -346,7 +370,8 @@ export default function DriverDashboard() {
                             placeholder="Наприклад: 15.5"
                             {...field}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                            className="text-lg h-12"
+                            className="text-lg h-12 font-bold"
+                            autoFocus
                           />
                         </FormControl>
                       </FormItem>
@@ -354,7 +379,7 @@ export default function DriverDashboard() {
                   />
 
                   {estimatedPrice > 0 && (
-                    <div className="p-4 bg-primary rounded-lg text-primary-foreground">
+                    <div className="p-4 bg-primary rounded-lg text-primary-foreground animate-in slide-in-from-top-2">
                       <div className="text-sm opacity-90">Разом до сплати:</div>
                       <div className="text-3xl font-bold">{estimatedPrice} грн</div>
                     </div>

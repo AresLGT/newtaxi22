@@ -106,6 +106,7 @@ export default function ClientHome() {
     queryClient.invalidateQueries({ queryKey: ["/api/orders/client", userId] });
   };
 
+  // Фільтруємо замовлення
   const activeOrders = orders.filter(o => 
     o.status === "pending" || o.status === "accepted" || o.status === "in_progress"
   );
@@ -170,7 +171,7 @@ export default function ClientHome() {
                   const Icon = getOrderTypeIcon(order.type);
                   
                   return (
-                    <Card key={order.orderId}>
+                    <Card key={order.orderId} className="border-primary/50 border">
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
@@ -181,9 +182,6 @@ export default function ClientHome() {
                               <div className="font-semibold">{getOrderTypeLabel(order.type)}</div>
                               <div className="text-xs text-muted-foreground">
                                 {new Date(order.createdAt!).toLocaleString('uk-UA', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })}
@@ -213,12 +211,12 @@ export default function ClientHome() {
                         </div>
 
                         {order.price && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <DollarSign className="w-4 h-4 text-muted-foreground" />
-                            <span className="font-semibold">{order.price} грн</span>
+                          <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded">
+                            <DollarSign className="w-4 h-4 text-primary" />
+                            <span className="font-bold text-lg">{order.price} грн</span>
                             {order.distanceKm && (
-                              <span className="text-muted-foreground">
-                                • {order.distanceKm.toFixed(1)} км
+                              <span className="text-muted-foreground text-xs ml-auto">
+                                {order.distanceKm.toFixed(1)} км
                               </span>
                             )}
                           </div>
@@ -228,34 +226,19 @@ export default function ClientHome() {
 
                         {/* Status-specific UI */}
                         {order.status === "pending" && (
-                          <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg">
-                            <Clock className="w-5 h-5 animate-pulse" />
-                            <span className="text-sm font-medium">Очікування водія...</span>
+                          <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg animate-pulse">
+                            <Clock className="w-5 h-5" />
+                            <span className="text-sm font-medium">Шукаємо водія...</span>
                           </div>
                         )}
 
-                        {order.status === "accepted" && order.driverId && (
-                          <DriverInfoSection driverId={order.driverId} orderId={order.orderId} setLocation={setLocation} />
-                        )}
-
-                        {order.status === "in_progress" && (
-                          <div className="space-y-3">
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <span className="font-medium">Виконується поїздка</span>
-                                <span className="text-muted-foreground">В дорозі...</span>
-                              </div>
-                              <Progress value={66} className="h-2" />
-                            </div>
-                            <Button
-                              className="w-full"
-                              variant="outline"
-                              onClick={() => setLocation(`/chat/${order.orderId}`)}
-                            >
-                              <MessageSquare className="w-4 h-4 mr-2" />
-                              Перейти до чату
-                            </Button>
-                          </div>
+                        {(order.status === "accepted" || order.status === "in_progress") && order.driverId && (
+                          <DriverInfoSection 
+                            driverId={order.driverId} 
+                            orderId={order.orderId} 
+                            setLocation={setLocation} 
+                            isInProgress={order.status === "in_progress"}
+                          />
                         )}
                       </CardContent>
                     </Card>
@@ -284,10 +267,7 @@ export default function ClientHome() {
                               <div className="text-xs text-muted-foreground">
                                 {new Date(order.createdAt!).toLocaleString('uk-UA', {
                                   day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
+                                  month: '2-digit'
                                 })}
                               </div>
                             </div>
@@ -296,8 +276,8 @@ export default function ClientHome() {
                         </div>
 
                         <div className="flex items-center justify-between text-sm">
-                          <div className="text-muted-foreground">
-                            {order.from} → {order.to}
+                          <div className="text-muted-foreground truncate max-w-[150px]">
+                            {order.to}
                           </div>
                           {order.price && (
                             <div className="font-semibold">{order.price} грн</div>
@@ -347,7 +327,17 @@ export default function ClientHome() {
   );
 }
 
-function DriverInfoSection({ driverId, orderId, setLocation }: { driverId: string; orderId: string; setLocation: (path: string) => void }) {
+function DriverInfoSection({ 
+  driverId, 
+  orderId, 
+  setLocation, 
+  isInProgress 
+}: { 
+  driverId: string; 
+  orderId: string; 
+  setLocation: (path: string) => void;
+  isInProgress: boolean;
+}) {
   const { data: driver, isLoading } = useQuery<UserType>({
     queryKey: [`/api/users/${driverId}`],
   });
@@ -361,35 +351,63 @@ function DriverInfoSection({ driverId, orderId, setLocation }: { driverId: strin
     );
   }
 
+  // Функція для очищення номера телефону від зайвих символів
+  const getCleanPhone = (phone: string) => {
+    return phone.replace(/[^\d+]/g, '');
+  };
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-start gap-3 bg-primary/10 p-3 rounded-lg">
-        <User className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <div className="font-medium">Водій знайдено</div>
-          {driver?.name && (
-            <div className="text-sm text-muted-foreground">
-              {driver.name}
+    <div className="space-y-3 pt-2">
+      <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-primary rounded-full p-2 text-primary-foreground">
+            <User className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-base">
+              {isInProgress ? "Виконується поїздка" : "Водій прямує до вас"}
             </div>
-          )}
+            {driver?.name && (
+              <div className="text-sm text-muted-foreground">
+                {driver.name}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mt-3">
           {driver?.phone && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-              <Phone className="w-4 h-4" />
-              <a href={`tel:${driver.phone}`} className="text-primary hover:underline">
-                {driver.phone}
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+              asChild
+            >
+              <a href={`tel:${getCleanPhone(driver.phone)}`}>
+                <Phone className="w-4 h-4 mr-2" />
+                Дзвонити
               </a>
-            </div>
+            </Button>
           )}
+          
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={() => setLocation(`/chat/${orderId}`)}
+          >
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Чат
+          </Button>
         </div>
       </div>
-      <Button
-        className="w-full"
-        onClick={() => setLocation(`/chat/${orderId}`)}
-        data-testid="button-chat"
-      >
-        <MessageSquare className="w-4 h-4 mr-2" />
-        Перейти до чату
-      </Button>
+      
+      {isInProgress && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>В дорозі</span>
+            <span>Прибуття скоро</span>
+          </div>
+          <Progress value={66} className="h-1.5" />
+        </div>
+      )}
     </div>
   );
 }
