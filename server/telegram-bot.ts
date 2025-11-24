@@ -187,19 +187,19 @@ export function initTelegramBot(storage: IStorage) {
     if (user.role === 'admin') {
       text = `Вітаю, ${firstName}! 👑\n\nВи Адміністратор і Водій.\n\n<b>Команди:</b>\n/generate - Згенерувати коди\n/codes - Невикористані коди\n/drivers - Список водіїв\n/stats - Статистика\n/setname ID ІМ'Я - Змінити ім'я`;
       keyboard = [
-        [{ text: '💼 Я водій', web_app: { url: WEB_APP_URL + `/driver?userId=${userId}` } }],
-        [{ text: '🙋‍♂️ Я клієнт', web_app: { url: WEB_APP_URL + `/client?userId=${userId}` } }],
+        [{ text: '💼 Я водій', web_app: { url: WEB_APP_URL + `/driver?userId=${userId}&asRole=driver` } }],
+        [{ text: '🙋‍♂️ Я клієнт', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }],
         [{ text: '📊 Панель адміна', web_app: { url: WEB_APP_URL + `/admin?userId=${userId}` } }]
       ];
     } else if (user.role === 'driver') {
       text = `Привіт, ${firstName}! 🚖\n\nВи водій. Приймайте замовлення та заробляйте!`;
       keyboard = [
         [{ text: '💼 Приймати замовлення', web_app: { url: WEB_APP_URL + `/driver?userId=${userId}` } }],
-        [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + `/client?userId=${userId}` } }]
+        [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]
       ];
     } else {
       text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nДля реєстрації як водій - введіть код доступу (8 символів).`;
-      keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + `/client?userId=${userId}` } }]];
+      keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]];
     }
     
     await bot.sendMessage(msg.chat.id, text, { 

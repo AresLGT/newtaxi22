@@ -26,6 +26,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Check URL parameters first (for testing)
         const params = new URLSearchParams(window.location.search);
         let telegramUserId = params.get("userId") ? parseInt(params.get("userId")!) : null;
+        const asRole = params.get("asRole") as UserRole | null;
         
         // Get Telegram user ID from Web App
         if (!telegramUserId) {
@@ -47,7 +48,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        console.log("🔐 Initializing user with ID:", telegramUserId);
+        console.log("🔐 Initializing user with ID:", telegramUserId, "asRole:", asRole);
 
         // Fetch user role from backend
         try {
@@ -57,18 +58,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
           if (response.ok) {
             const user = await response.json();
             console.log("✅ User loaded:", user.role, user.id);
-            setRole(user.role);
+            
+            // If asRole is specified and user is admin, use asRole
+            const finalRole = (asRole && user.role === "admin") ? asRole : user.role;
+            console.log("🎭 Final role:", finalRole);
+            
+            setRole(finalRole);
             setUserIdState(user.id);
           } else {
             // User doesn't exist yet, create as client
             console.log("ℹ️ User not found, setting as client");
             setUserIdState(telegramUserId.toString());
-            setRole("client");
+            setRole(asRole || "client");
           }
         } catch (error) {
           console.error("❌ Error fetching user:", error);
           setUserIdState(telegramUserId.toString());
-          setRole("client");
+          setRole(asRole || "client");
         }
       } catch (error) {
         console.error("❌ Error initializing user:", error);
