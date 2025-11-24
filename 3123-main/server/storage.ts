@@ -7,8 +7,6 @@ import {
   type InsertAccessCode,
   type ChatMessage,
   type InsertChatMessage,
-  type Rating,
-  type InsertRating,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -22,13 +20,14 @@ export interface IStorage {
 
   // Order methods
   getOrder(orderId: string): Promise<Order | undefined>;
-  getAllOrders(): Promise<Order[]>;
   getActiveOrders(): Promise<Order[]>;
   getOrdersByClient(clientId: string): Promise<Order[]>;
   getOrdersByDriver(driverId: string): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined>;
   acceptOrder(orderId: string, driverId: string): Promise<Order | undefined>;
+  proposeBid(orderId: string, driverId: string, price: number): Promise<Order | undefined>;
+  respondToBid(orderId: string, clientId: string, accepted: boolean): Promise<Order | undefined>;
 
   // Access Code methods
   generateAccessCode(issuedBy: string): Promise<AccessCode>;
@@ -38,17 +37,6 @@ export interface IStorage {
   // Chat methods
   getChatMessages(orderId: string): Promise<ChatMessage[]>;
   sendChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-
-  // Rating methods
-  rateOrder(orderId: string, stars: number, comment?: string): Promise<boolean>;
-  getAllRatings(): Promise<Rating[]>;
-  getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}>;
-  getDriverBadges(driverId: string): Promise<string | null>;
-
-  // Rate limit methods
-  getRateLimitTimestamps(userId: string): Promise<number[]>;
-  saveRateLimitTimestamps(userId: string, timestamps: number[]): Promise<void>;
-  cleanExpiredRateLimits(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -56,35 +44,19 @@ export class MemStorage implements IStorage {
   private orders: Map<string, Order>;
   private accessCodes: Map<string, AccessCode>;
   private chatMessages: Map<string, ChatMessage[]>;
-  private ratings: Map<string, Rating>;
-  private rateLimits: Map<string, number[]>;
 
   constructor() {
     this.users = new Map();
     this.orders = new Map();
     this.accessCodes = new Map();
     this.chatMessages = new Map();
-    this.ratings = new Map();
-    this.rateLimits = new Map();
 
-    // Create default admins
+    // Create a default admin for testing
     this.users.set("admin1", {
       id: "admin1",
       role: "admin",
       name: "Адміністратор",
       phone: "+380501111111",
-      telegramAvatarUrl: null,
-      isBlocked: false,
-      warnings: [],
-      bonuses: [],
-    });
-
-    // Add Telegram admin
-    this.users.set("7677921905", {
-      id: "7677921905",
-      role: "admin",
-      name: "Адміністратор",
-      phone: null,
       telegramAvatarUrl: null,
       isBlocked: false,
       warnings: [],
@@ -132,30 +104,16 @@ export class MemStorage implements IStorage {
       return null;
     }
 
-    // Get or create user with driver role
-    let user = await this.getUser(userId);
-    if (!user) {
-      user = await this.createUser({
-        id: userId,
-        role: "driver",
-        name,
-        phone,
-        telegramAvatarUrl: null,
-      });
-    } else {
-      // Update existing user to driver role
-      user = await this.updateUser(userId, {
-        role: "driver",
-        name,
-        phone,
-      });
-    }
+    const user = await this.createUser({
+      id: userId,
+      role: "driver",
+      name,
+      phone,
+      telegramAvatarUrl: null,
+    });
 
-    if (user) {
-      await this.markCodeAsUsed(code, userId);
-    }
-
-    return user ?? null;
+    await this.markCodeAsUsed(code, userId);
+    return user;
   }
 
   // Order methods
@@ -163,13 +121,9 @@ export class MemStorage implements IStorage {
     return this.orders.get(orderId);
   }
 
-  async getAllOrders(): Promise<Order[]> {
-    return Array.from(this.orders.values());
-  }
-
   async getActiveOrders(): Promise<Order[]> {
     return Array.from(this.orders.values()).filter(
-      (order) => order.status === "pending"
+      (order) => order.status === "new" || order.status === "bidding"
     );
   }
 
@@ -186,8 +140,11 @@ export class MemStorage implements IStorage {
     const order: Order = {
       orderId,
       ...insertOrder,
-      status: "pending",
+      status: "new",
       driverId: null,
+      driverBidPrice: null,
+      isTaken: false,
+      proposalAttempts: [],
       createdAt: new Date(),
     };
     this.orders.set(orderId, order);
@@ -205,37 +162,82 @@ export class MemStorage implements IStorage {
 
   async acceptOrder(orderId: string, driverId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
-    if (!order || order.status !== "pending") return undefined;
+    if (!order) return undefined;
+
+    // Check if order is already taken
+    if (order.isTaken && order.driverId !== driverId) {
+      return undefined;
+    }
 
     const driver = await this.getUser(driverId);
     if (!driver || driver.role !== "driver" || driver.isBlocked) {
       return undefined;
     }
 
+    // Check if driver already attempted this order and was rejected
+    if (order.proposalAttempts.includes(driverId)) {
+      return undefined;
+    }
+
     const updatedOrder = {
       ...order,
       driverId,
-      status: "accepted" as const,
+      isTaken: true,
+      status: "bidding" as const,
     };
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
 
+  async proposeBid(orderId: string, driverId: string, price: number): Promise<Order | undefined> {
+    const order = this.orders.get(orderId);
+    if (!order || order.driverId !== driverId || order.status !== "bidding") {
+      return undefined;
+    }
+
+    const updatedOrder = {
+      ...order,
+      driverBidPrice: price,
+    };
+    this.orders.set(orderId, updatedOrder);
+    return updatedOrder;
+  }
+
+  async respondToBid(
+    orderId: string,
+    clientId: string,
+    accepted: boolean
+  ): Promise<Order | undefined> {
+    const order = this.orders.get(orderId);
+    if (!order || order.clientId !== clientId || order.status !== "bidding") {
+      return undefined;
+    }
+
+    if (accepted) {
+      const updatedOrder = {
+        ...order,
+        status: "in_progress" as const,
+      };
+      this.orders.set(orderId, updatedOrder);
+      return updatedOrder;
+    } else {
+      // Reject - add driver to proposal attempts and reset
+      const updatedOrder = {
+        ...order,
+        driverId: null,
+        driverBidPrice: null,
+        isTaken: false,
+        status: "new" as const,
+        proposalAttempts: [...order.proposalAttempts, order.driverId!],
+      };
+      this.orders.set(orderId, updatedOrder);
+      return updatedOrder;
+    }
+  }
+
   // Access Code methods
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
-    let code: string;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    do {
-      code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      attempts++;
-      if (attempts >= maxAttempts) {
-        code = randomUUID().substring(0, 8).toUpperCase();
-        break;
-      }
-    } while (this.accessCodes.has(code));
-
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const accessCode: AccessCode = {
       code,
       isUsed: false,
@@ -282,100 +284,6 @@ export class MemStorage implements IStorage {
     this.chatMessages.set(insertMessage.orderId, messages);
 
     return message;
-  }
-
-  // Rating methods
-  async rateOrder(orderId: string, stars: number, comment?: string): Promise<boolean> {
-    const order = this.orders.get(orderId);
-    if (!order || order.status !== "completed" || !order.driverId) {
-      return false;
-    }
-
-    // Перевірка чи замовлення вже оцінено
-    const existingRating = Array.from(this.ratings.values()).find(
-      (rating) => rating.orderId === orderId
-    );
-    if (existingRating) {
-      return false;
-    }
-
-    const normalizedStars = Math.min(5, Math.max(1, Math.floor(stars)));
-    const ratingId = randomUUID();
-    const rating: Rating = {
-      id: ratingId,
-      orderId,
-      driverId: order.driverId,
-      stars: normalizedStars,
-      comment: comment || null,
-      createdAt: new Date(),
-    };
-
-    this.ratings.set(ratingId, rating);
-    return true;
-  }
-
-  async getAllRatings(): Promise<Rating[]> {
-    return Array.from(this.ratings.values());
-  }
-
-  async getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}> {
-    const completedOrders = Array.from(this.orders.values()).filter(
-      (order) => order.driverId === driverId && order.status === "completed"
-    );
-
-    const driverRatings = Array.from(this.ratings.values()).filter(
-      (rating) => rating.driverId === driverId
-    );
-
-    const totalRatings = driverRatings.length;
-    const averageRating = totalRatings > 0
-      ? driverRatings.reduce((sum, r) => sum + r.stars, 0) / totalRatings
-      : 0;
-
-    return {
-      completedOrders: completedOrders.length,
-      totalRatings,
-      averageRating: Math.round(averageRating * 10) / 10,
-    };
-  }
-
-  async getDriverBadges(driverId: string): Promise<string | null> {
-    const stats = await this.getDriverStats(driverId);
-    const badges: string[] = [];
-
-    if (stats.averageRating >= 4.8) badges.push('⭐ Топ-водій');
-    if (stats.completedOrders >= 100) badges.push('🏆 Легенда');
-    if (stats.completedOrders >= 50) badges.push('🔥 Активний');
-    if (stats.completedOrders >= 20 && stats.averageRating >= 4.5) badges.push('💎 Преміум');
-    if (stats.totalRatings >= 50 && stats.averageRating === 5.0) badges.push('⚡ Ідеальний');
-
-    return badges.length > 0 ? badges.join(' ') : null;
-  }
-
-  // Rate limit methods
-  async getRateLimitTimestamps(userId: string): Promise<number[]> {
-    return this.rateLimits.get(userId) || [];
-  }
-
-  async saveRateLimitTimestamps(userId: string, timestamps: number[]): Promise<void> {
-    this.rateLimits.set(userId, timestamps);
-  }
-
-  async cleanExpiredRateLimits(): Promise<void> {
-    const now = Date.now();
-    const RATE_LIMIT_WINDOW = 60000; // 1 minute
-
-    for (const [userId, timestamps] of this.rateLimits.entries()) {
-      const validTimestamps = timestamps.filter(
-        (timestamp) => now - timestamp < RATE_LIMIT_WINDOW
-      );
-
-      if (validTimestamps.length === 0) {
-        this.rateLimits.delete(userId);
-      } else {
-        this.rateLimits.set(userId, validTimestamps);
-      }
-    }
   }
 }
 

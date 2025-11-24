@@ -1,9 +1,12 @@
-import { useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Navigation, DollarSign, User, Plus, ArrowLeft } from "lucide-react";
+import { MapPin, Navigation, DollarSign, Lock, User, Plus, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -21,14 +24,11 @@ const orderTypeLabels = {
 export default function DriverDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { userId: driverId, role } = useUser();
+  const { userId: driverId } = useUser();
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [bidPrice, setBidPrice] = useState("");
+  const [showBidModal, setShowBidModal] = useState(false);
 
-  // Защита маршруту - тільки водії можуть тут бути
-  useEffect(() => {
-    if (role !== "driver") {
-      setLocation("/");
-    }
-  }, [role, setLocation]);
   const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
     refetchInterval: 3000,
@@ -38,12 +38,11 @@ export default function DriverDashboard() {
     mutationFn: async (orderId: string) => {
       return await apiRequest("POST", `/api/orders/${orderId}/accept`, { driverId });
     },
-    onSuccess: () => {
+    onSuccess: (updatedOrder) => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
-      toast({
-        title: "Замовлення прийнято",
-        description: "Клієнт буде повідомлений про прийняття замовлення",
-      });
+      setSelectedOrder(updatedOrder);
+      setShowBidModal(true);
+      setBidPrice("");
     },
     onError: () => {
       toast({
@@ -54,8 +53,42 @@ export default function DriverDashboard() {
     },
   });
 
+  const proposeBidMutation = useMutation({
+    mutationFn: async ({ orderId, price }: { orderId: string; price: number }) => {
+      return await apiRequest("POST", `/api/orders/${orderId}/bid`, {
+        driverId,
+        price,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      toast({
+        title: "Ціну запропоновано",
+        description: "Очікуйте відповіді від клієнта",
+      });
+      setShowBidModal(false);
+      setSelectedOrder(null);
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося запропонувати ціну",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAcceptOrder = (order: Order) => {
     acceptOrderMutation.mutate(order.orderId);
+  };
+
+  const handleSubmitBid = () => {
+    if (selectedOrder && bidPrice) {
+      proposeBidMutation.mutate({
+        orderId: selectedOrder.orderId,
+        price: Number(bidPrice),
+      });
+    }
   };
 
   return (
@@ -63,15 +96,7 @@ export default function DriverDashboard() {
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation("/")}
-              data-testid="button-back"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-1">
+            <div>
               <h1 className="text-lg font-semibold">Активні замовлення</h1>
               <p className="text-xs text-muted-foreground">Виберіть замовлення для роботи</p>
             </div>
@@ -126,7 +151,7 @@ export default function DriverDashboard() {
             {orders.map((order) => (
               <Card
                 key={order.orderId}
-                className="border-card-border"
+                className={`border-card-border ${order.isTaken && order.driverId !== driverId ? "opacity-60" : ""}`}
                 data-testid={`card-order-${order.orderId}`}
               >
                 <CardHeader className="space-y-3 pb-3">
@@ -134,10 +159,15 @@ export default function DriverDashboard() {
                     <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs font-semibold">
                       {orderTypeLabels[order.type]}
                     </Badge>
-                    {order.price && (
-                      <Badge variant="default" className="rounded-full px-3 py-1 text-xs gap-1">
-                        <DollarSign className="w-3 h-3" />
-                        {order.price} грн
+                    {order.isTaken && order.driverId !== driverId && (
+                      <Badge variant="outline" className="rounded-full px-3 py-1 text-xs gap-1">
+                        <Lock className="w-3 h-3" />
+                        Зайнято
+                      </Badge>
+                    )}
+                    {order.status === "bidding" && order.driverId === driverId && (
+                      <Badge variant="default" className="rounded-full px-3 py-1 text-xs">
+                        Очікування відповіді
                       </Badge>
                     )}
                   </div>
@@ -154,11 +184,6 @@ export default function DriverDashboard() {
                         <span className="font-medium">Куди:</span> {order.to}
                       </div>
                     </div>
-                    {order.distanceKm && (
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Відстань:</span> {order.distanceKm} км
-                      </div>
-                    )}
                   </div>
                   {order.requiredDetail && (
                     <div className="text-sm bg-muted rounded-lg p-3">
@@ -172,20 +197,71 @@ export default function DriverDashboard() {
                   )}
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <Button
-                    className="w-full h-12 font-semibold"
-                    onClick={() => handleAcceptOrder(order)}
-                    data-testid={`button-accept-${order.orderId}`}
-                    disabled={acceptOrderMutation.isPending}
-                  >
-                    {acceptOrderMutation.isPending ? "Обробка..." : "Прийняти замовлення"}
-                  </Button>
+                  {!order.isTaken ? (
+                    <Button
+                      className="w-full h-12 font-semibold"
+                      onClick={() => handleAcceptOrder(order)}
+                      data-testid={`button-accept-${order.orderId}`}
+                      disabled={acceptOrderMutation.isPending}
+                    >
+                      {acceptOrderMutation.isPending ? "Обробка..." : "Прийняти замовлення"}
+                    </Button>
+                  ) : order.driverId === driverId ? (
+                    <Button
+                      className="w-full h-12"
+                      variant="outline"
+                      disabled
+                    >
+                      Ваше замовлення - очікуйте відповіді
+                    </Button>
+                  ) : (
+                    <Button
+                      className="w-full h-12"
+                      variant="secondary"
+                      disabled
+                    >
+                      Зайнято іншим водієм
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <Dialog open={showBidModal} onOpenChange={setShowBidModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Запропонувати ціну</DialogTitle>
+            <DialogDescription>
+              Вкажіть вашу ціну для замовлення
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="price">Ціна (грн) *</Label>
+              <Input
+                id="price"
+                type="number"
+                placeholder="0"
+                value={bidPrice}
+                onChange={(e) => setBidPrice(e.target.value)}
+                data-testid="input-bid-price"
+                className="text-base h-12"
+              />
+            </div>
+            <Button
+              className="w-full h-12"
+              onClick={handleSubmitBid}
+              disabled={!bidPrice || proposeBidMutation.isPending}
+              data-testid="button-submit-bid"
+            >
+              {proposeBidMutation.isPending ? "Відправка..." : "Відправити пропозицію"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

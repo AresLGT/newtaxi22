@@ -6,22 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, MapPin, Navigation, Calculator } from "lucide-react";
+import { ArrowLeft, MapPin, Navigation } from "lucide-react";
 import { useLocation } from "wouter";
 import { insertOrderSchema, type OrderType } from "@shared/schema";
-import { TARIFFS, calculatePrice, type TariffKey } from "@shared/tariffs";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/use-user";
-import { useState } from "react";
-
-const orderTypeToTariff: Record<OrderType, TariffKey> = {
-  taxi: 'Таксі 🚕',
-  cargo: 'Вантажний 🚚',
-  courier: 'Кур\'єр 📦',
-  towing: 'Буксир 🪝',
-};
 
 const orderTypeConfig = {
   taxi: {
@@ -56,10 +47,6 @@ export default function OrderForm({ params }: { params: { type: string } }) {
   const { userId } = useUser();
   const orderType = params.type as OrderType;
   const config = orderTypeConfig[orderType];
-  const tariffKey = orderTypeToTariff[orderType];
-  const tariff = TARIFFS[tariffKey];
-  
-  const [distance, setDistance] = useState<number>(0);
 
   const formSchema = insertOrderSchema.extend({
     from: z.string().min(3, "Вкажіть адресу початку"),
@@ -68,7 +55,6 @@ export default function OrderForm({ params }: { params: { type: string } }) {
       ? z.string().min(2, `${config.requiredLabel.replace(" *", "")} обов'язкове`)
       : z.string().optional(),
     comment: z.string().optional(),
-    distanceKm: z.number().min(0.1, "Вкажіть відстань"),
   });
 
   const createOrderMutation = useMutation({
@@ -100,19 +86,11 @@ export default function OrderForm({ params }: { params: { type: string } }) {
       requiredDetail: "",
       comment: "",
       clientId: userId,
-      distanceKm: 0,
     },
   });
 
-  const watchedDistance = form.watch("distanceKm");
-  const estimatedPrice = watchedDistance > 0 ? calculatePrice(tariffKey, watchedDistance) : 0;
-
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const orderData = {
-      ...data,
-      price: estimatedPrice,
-    };
-    createOrderMutation.mutate(orderData);
+    createOrderMutation.mutate(data);
   };
 
   return (
@@ -138,16 +116,6 @@ export default function OrderForm({ params }: { params: { type: string } }) {
           <CardHeader className="space-y-1">
             <CardTitle>{config.title}</CardTitle>
             <CardDescription>{config.description}</CardDescription>
-            <div className="pt-2 px-4 py-3 bg-primary/10 rounded-lg border border-primary/20">
-              <div className="flex items-center gap-2 text-sm font-medium mb-1">
-                <Calculator className="w-4 h-4 text-primary" />
-                <span>Тариф</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                <div>Базова ціна: <span className="font-semibold text-foreground">{tariff.basePrice} грн</span></div>
-                <div>За кілометр: <span className="font-semibold text-foreground">{tariff.perKm} грн/км</span></div>
-              </div>
-            </div>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -195,46 +163,6 @@ export default function OrderForm({ params }: { params: { type: string } }) {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="distanceKm"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Calculator className="w-4 h-4 text-primary" />
-                        Відстань (км) *
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          placeholder="Наприклад: 5.5"
-                          {...field}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
-                            field.onChange(value);
-                            setDistance(value);
-                          }}
-                          data-testid="input-distance"
-                          className="text-base h-12"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {estimatedPrice > 0 && (
-                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                    <div className="text-sm text-muted-foreground mb-1">Орієнтовна вартість</div>
-                    <div className="text-2xl font-bold text-primary">{estimatedPrice} грн</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {tariff.basePrice} грн + {watchedDistance} км × {tariff.perKm} грн/км
-                    </div>
-                  </div>
-                )}
 
                 {config.requiredLabel && (
                   <FormField

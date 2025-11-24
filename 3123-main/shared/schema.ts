@@ -24,10 +24,11 @@ export const orders = pgTable("orders", {
   comment: text("comment"),
   requiredDetail: text("required_detail"),
   status: text("status", { 
-    enum: ["pending", "accepted", "in_progress", "completed", "cancelled"] 
-  }).notNull().default("pending"),
-  price: real("price"),
-  distanceKm: real("distance_km"),
+    enum: ["new", "bidding", "accepted", "in_progress", "rejected_by_client", "completed"] 
+  }).notNull().default("new"),
+  driverBidPrice: real("driver_bid_price"),
+  isTaken: boolean("is_taken").default(false),
+  proposalAttempts: text("proposal_attempts").array().default([]),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -47,15 +48,6 @@ export const chatMessages = pgTable("chat_messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const ratings = pgTable("ratings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  orderId: varchar("order_id").notNull(),
-  driverId: varchar("driver_id").notNull(),
-  stars: integer("stars").notNull(),
-  comment: text("comment"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const insertUserSchema = createInsertSchema(users).omit({
   warnings: true,
   bonuses: true,
@@ -66,6 +58,9 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   createdAt: true,
   status: true,
   driverId: true,
+  driverBidPrice: true,
+  isTaken: true,
+  proposalAttempts: true,
 }).extend({
   type: z.enum(["taxi", "cargo", "courier", "towing"]),
   from: z.string().min(1),
@@ -73,8 +68,6 @@ export const insertOrderSchema = createInsertSchema(orders).omit({
   clientId: z.string().min(1),
   comment: z.string().optional(),
   requiredDetail: z.string().optional(),
-  price: z.number().optional(),
-  distanceKm: z.number().optional(),
 });
 
 export const insertAccessCodeSchema = createInsertSchema(accessCodes).omit({
@@ -84,14 +77,6 @@ export const insertAccessCodeSchema = createInsertSchema(accessCodes).omit({
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   id: true,
   createdAt: true,
-});
-
-export const insertRatingSchema = createInsertSchema(ratings).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  stars: z.number().min(1).max(5),
-  comment: z.string().optional(),
 });
 
 export type User = typeof users.$inferSelect;
@@ -106,9 +91,6 @@ export type InsertAccessCode = z.infer<typeof insertAccessCodeSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
-export type Rating = typeof ratings.$inferSelect;
-export type InsertRating = z.infer<typeof insertRatingSchema>;
-
 export type OrderType = "taxi" | "cargo" | "courier" | "towing";
-export type OrderStatus = "pending" | "accepted" | "in_progress" | "completed" | "cancelled";
+export type OrderStatus = "new" | "bidding" | "accepted" | "in_progress" | "rejected_by_client" | "completed";
 export type UserRole = "client" | "driver" | "admin";

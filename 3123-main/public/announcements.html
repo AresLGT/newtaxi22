@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Оголошення</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                min-height: 100vh;
+                padding: 20px;
+                color: #e0e0e0;
+            }
+            
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+            }
+            
+            h1 {
+                text-align: center;
+                color: #ffffff;
+                margin-bottom: 30px;
+                font-size: 28px;
+            }
+            
+            .announcement {
+                background: rgba(30, 30, 45, 0.9);
+                border-left: 5px solid #667eea;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 15px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            }
+            
+            .announcement.important {
+                border-left-color: #ff6b6b;
+                background: rgba(255, 107, 107, 0.1);
+            }
+            
+            .announcement.success {
+                border-left-color: #34c759;
+                background: rgba(52, 199, 89, 0.1);
+            }
+            
+            .announcement-title {
+                font-size: 18px;
+                font-weight: 700;
+                color: #e0e0e0;
+                margin-bottom: 8px;
+            }
+            
+            .announcement-text {
+                font-size: 14px;
+                color: #b0b0b0;
+                line-height: 1.6;
+                margin-bottom: 10px;
+            }
+            
+            .announcement-time {
+                font-size: 12px;
+                color: #8e8e93;
+            }
+            
+            .announcement-badge {
+                display: inline-block;
+                background: #667eea;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 600;
+                margin-top: 8px;
+            }
+            
+            .empty-state {
+                text-align: center;
+                padding: 60px 20px;
+                color: #b0b0b0;
+            }
+            
+            .empty-icon {
+                font-size: 48px;
+                margin-bottom: 15px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <h1 style="margin: 0;">📢 Оголошення</h1>
+                <button onclick="window.history.back()" style="background: #8e8e93; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">✕ Закрити</button>
+            </div>
+            <div id="announcements-list"></div>
+        </div>
+
+        <script>
+            async function loadAnnouncements() {
+                const res = await fetch('/announcements').then(r => r.json());
+                const div = document.getElementById('announcements-list');
+                
+                if (!res || res.length === 0) {
+                    div.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div>Немає оголошень</div></div>';
+                } else {
+                    div.innerHTML = res.map(a => `
+                        <div class="announcement ${a.type === 'important' ? 'important' : a.type === 'success' ? 'success' : ''}">
+                            <div class="announcement-title">${a.title}</div>
+                            <div class="announcement-text">${a.text}</div>
+                            <div class="announcement-badge">${a.type === 'important' ? '⚠️ Важливо' : a.type === 'success' ? '✅ Хорошо' : '📌 Новина'}</div>
+                            <div class="announcement-time">⏰ ${new Date(a.createdAt).toLocaleDateString('uk-UA')} о ${new Date(a.createdAt).toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'})}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            loadAnnouncements();
+            setInterval(loadAnnouncements, 10000); // Оновлення кожні 10 секунд
+        </script>
+    </body>
+</html>

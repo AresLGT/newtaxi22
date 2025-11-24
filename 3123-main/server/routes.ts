@@ -8,7 +8,6 @@ import {
   insertChatMessageSchema,
 } from "@shared/schema";
 import { handleTelegramUpdate, getBotInfo, autoSetupWebhook } from "./telegram";
-import { rateLimitMiddleware } from "./middleware/rate-limit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -94,7 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
-  app.post("/api/orders", rateLimitMiddleware, async (req, res) => {
+  app.post("/api/orders", async (req, res) => {
     try {
       const data = insertOrderSchema.parse(req.body);
       const order = await storage.createOrder(data);
@@ -122,6 +121,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/orders/:id/bid", async (req, res) => {
+    try {
+      const schema = z.object({
+        driverId: z.string(),
+        price: z.number().positive(),
+      });
+      const data = schema.parse(req.body);
+
+      const order = await storage.proposeBid(req.params.id, data.driverId, data.price);
+      if (!order) {
+        return res.status(400).json({ error: "Cannot propose bid" });
+      }
+
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid bid data" });
+    }
+  });
+
+  app.post("/api/orders/:id/respond", async (req, res) => {
+    try {
+      const schema = z.object({
+        clientId: z.string(),
+        accepted: z.boolean(),
+      });
+      const data = schema.parse(req.body);
+
+      const order = await storage.respondToBid(req.params.id, data.clientId, data.accepted);
+      if (!order) {
+        return res.status(400).json({ error: "Cannot respond to bid" });
+      }
+
+      res.json(order);
+    } catch (error) {
+      res.status(400).json({ error: "Invalid response data" });
+    }
+  });
+
   app.patch("/api/orders/:id", async (req, res) => {
     try {
       const updates = req.body;
@@ -132,44 +169,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(order);
     } catch (error) {
       res.status(400).json({ error: "Invalid update data" });
-    }
-  });
-
-  app.post("/api/orders/:id/rate", async (req, res) => {
-    try {
-      const schema = z.object({
-        stars: z.number().min(1).max(5),
-        comment: z.string().optional(),
-      });
-      const data = schema.parse(req.body);
-
-      const success = await storage.rateOrder(req.params.id, data.stars, data.comment);
-      if (!success) {
-        return res.status(400).json({ error: "Cannot rate order" });
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      res.status(400).json({ error: "Invalid rating data" });
-    }
-  });
-
-  // Driver rating routes
-  app.get("/api/drivers/:id/stats", async (req, res) => {
-    try {
-      const stats = await storage.getDriverStats(req.params.id);
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Cannot retrieve driver stats" });
-    }
-  });
-
-  app.get("/api/drivers/:id/badges", async (req, res) => {
-    try {
-      const badges = await storage.getDriverBadges(req.params.id);
-      res.json({ badges });
-    } catch (error) {
-      res.status(500).json({ error: "Cannot retrieve driver badges" });
     }
   });
 

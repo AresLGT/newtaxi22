@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Taxi Bot UA - Telegram Бот Таксі</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                color: #1d1d1f;
+            }
+            
+            .container {
+                max-width: 600px;
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                -webkit-backdrop-filter: blur(20px);
+                border-radius: 30px;
+                padding: 50px 40px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                animation: slideUp 0.5s ease-out;
+                text-align: center;
+            }
+            
+            @keyframes slideUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            
+            .logo {
+                font-size: 80px;
+                margin-bottom: 20px;
+            }
+            
+            h1 {
+                font-size: 36px;
+                font-weight: 700;
+                margin-bottom: 15px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+            
+            .subtitle {
+                font-size: 18px;
+                color: #86868b;
+                margin-bottom: 40px;
+                line-height: 1.6;
+            }
+            
+            .services {
+                display: flex;
+                justify-content: center;
+                gap: 15px;
+                margin-bottom: 40px;
+                flex-wrap: wrap;
+            }
+            
+            .service {
+                background: #f5f5f7;
+                padding: 15px 25px;
+                border-radius: 15px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+            
+            .telegram-btn {
+                display: inline-block;
+                background: linear-gradient(135deg, #0088cc 0%, #0066aa 100%);
+                color: white;
+                text-decoration: none;
+                padding: 18px 40px;
+                border-radius: 15px;
+                font-size: 18px;
+                font-weight: 700;
+                margin-bottom: 30px;
+                box-shadow: 0 10px 30px rgba(0, 136, 204, 0.4);
+                transition: all 0.3s;
+            }
+            
+            .telegram-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 15px 40px rgba(0, 136, 204, 0.5);
+            }
+            
+            .divider {
+                height: 1px;
+                background: linear-gradient(90deg, transparent, #e5e5ea, transparent);
+                margin: 30px 0;
+            }
+            
+            .test-section {
+                margin-top: 30px;
+            }
+            
+            .test-title {
+                font-size: 14px;
+                color: #86868b;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                margin-bottom: 15px;
+                font-weight: 600;
+            }
+            
+            .test-links {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .test-link {
+                display: inline-block;
+                background: #f5f5f7;
+                color: #667eea;
+                text-decoration: none;
+                padding: 12px 25px;
+                border-radius: 12px;
+                font-size: 15px;
+                font-weight: 600;
+                transition: all 0.3s;
+            }
+            
+            .test-link:hover {
+                background: #e8e8ed;
+                transform: translateY(-1px);
+            }
+            
+            .features {
+                text-align: left;
+                margin: 30px 0;
+                background: #f5f5f7;
+                padding: 25px;
+                border-radius: 20px;
+            }
+            
+            .feature {
+                margin-bottom: 12px;
+                font-size: 15px;
+                line-height: 1.6;
+            }
+            
+            .feature:last-child {
+                margin-bottom: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="logo">🚖</div>
+            <h1>Taxi Bot UA</h1>
+            <p class="subtitle">
+                Telegram бот для замовлення таксі та інших послуг.<br>
+                Швидко, зручно, надійно!
+            </p>
+            
+            <div class="services">
+                <div class="service">🚕 Таксі</div>
+                <div class="service">🚚 Вантаж</div>
+                <div class="service">📦 Кур'єр</div>
+                <div class="service">🪝 Буксир</div>
+            </div>
+            
+            <a href="https://t.me/YOUR_BOT_USERNAME" class="telegram-btn" id="telegram-link">
+                📱 Відкрити в Telegram
+            </a>
+            
+            <div class="features">
+                <div class="feature">✅ Реєстрація через Telegram</div>
+                <div class="feature">✅ Вибір типу послуги</div>
+                <div class="feature">✅ Миттєве знаходження водія</div>
+                <div class="feature">✅ Чат з виконавцем</div>
+                <div class="feature">✅ Система для водіїв з унікальними кодами</div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="test-section">
+                <div class="test-title">Режим тестування</div>
+                <div class="test-links">
+                    <a href="/client.html" class="test-link">🙋‍♂️ Інтерфейс клієнта</a>
+                    <a href="/driver.html" class="test-link">🚖 Інтерфейс водія</a>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="font-size: 13px; color: #86868b; margin-top: 20px;">
+                💡 Для повного функціоналу потрібен Telegram бот токен<br>
+                Додайте <code>TELEGRAM_BOT_TOKEN</code> в Replit Secrets
+            </p>
+        </div>
+        
+        <script>
+            // Оновлюємо посилання на бота, якщо є токен
+            const telegramLink = document.getElementById('telegram-link');
+            // Тут можна додати логіку для перевірки наявності бота
+        </script>
+    </body>
+</html>

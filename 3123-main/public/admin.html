@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Панель адміна</title>
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script>
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.expand();
+                tg.headerColor = '#1a1a2e';
+                tg.bottomBarColor = '#1a1a2e';
+            }
+        </script>
+        <link rel="stylesheet" href="/style-enhancements.css">
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                min-height: 100vh;
+                padding: 20px;
+                color: #e0e0e0;
+            }
+            
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+            
+            h1 {
+                text-align: center;
+                color: #ffffff;
+                margin-bottom: 30px;
+                font-size: 32px;
+            }
+            
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }
+            
+            .stat-card {
+                background: rgba(30, 30, 45, 0.9);
+                padding: 25px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                text-align: center;
+                border: 1px solid #3a3a4e;
+            }
+            
+            .stat-value {
+                font-size: 40px;
+                font-weight: 700;
+                color: #667eea;
+                margin-bottom: 10px;
+            }
+            
+            .stat-label {
+                font-size: 14px;
+                color: #b0b0b0;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .orders-section {
+                background: rgba(30, 30, 45, 0.9);
+                border-radius: 15px;
+                padding: 25px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                border: 1px solid #3a3a4e;
+            }
+            
+            h2 {
+                margin-bottom: 20px;
+                color: #e0e0e0;
+                font-size: 22px;
+            }
+            
+            .order-item {
+                padding: 15px;
+                background: #2a2a3e;
+                border-radius: 10px;
+                margin-bottom: 10px;
+                border-left: 4px solid #667eea;
+            }
+            
+            .order-id {
+                font-weight: 700;
+                color: #667eea;
+            }
+            
+            .order-info {
+                font-size: 14px;
+                color: #b0b0b0;
+                margin-top: 5px;
+            }
+
+            .driver-card {
+                background: #2a2a3e;
+                padding: 20px;
+                border-radius: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                border-left: 5px solid #667eea;
+            }
+
+            .driver-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+
+            .driver-name {
+                font-size: 18px;
+                font-weight: 700;
+                color: #e0e0e0;
+            }
+
+            .driver-status {
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                background: rgba(52, 199, 89, 0.2);
+                color: #34c759;
+            }
+
+            .driver-stats-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 10px;
+            }
+
+            .driver-stat {
+                background: #353550;
+                padding: 12px;
+                border-radius: 10px;
+                text-align: center;
+            }
+
+            .driver-stat-value {
+                font-size: 18px;
+                font-weight: 700;
+                color: #667eea;
+            }
+
+            .driver-stat-label {
+                font-size: 12px;
+                color: #b0b0b0;
+                margin-top: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📊 Панель адміна</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-orders">0</div>
+                    <div class="stat-label">Всього замовлень</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="completed-orders">0</div>
+                    <div class="stat-label">Завершено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pending-orders">0</div>
+                    <div class="stat-label">Очікують</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="active-drivers">0</div>
+                    <div class="stat-label">Активних водіїв</div>
+                </div>
+            </div>
+            
+            <div class="orders-section">
+                <h2>🚗 Водії</h2>
+                <div class="filters-container">
+                    <button class="filter-btn active" onclick="filterDrivers('all')">Всі</button>
+                    <button class="filter-btn" onclick="filterDrivers('online')">🟢 Онлайн</button>
+                    <button class="filter-btn" onclick="filterDrivers('top')">⭐ Top Рейтинг</button>
+                    <button class="filter-btn" onclick="filterDrivers('active')">🔥 Активні</button>
+                </div>
+                <div id="drivers-list">
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                    <div class="skeleton skeleton-card"></div>
+                </div>
+            </div>
+
+            <!-- ГРАФІКИ ЗАРОБІТКІВ (ПОВНА ШИРИНА) -->
+            <div class="orders-section" style="margin-top: 30px;">
+                <h2>📈 Графік заробітків</h2>
+                <canvas id="earningsChart" width="400" height="200" style="max-width: 100%;"></canvas>
+            </div>
+
+            <!-- ТОП-10 ВОДІЇВ -->
+            <div class="orders-section" style="margin-top: 30px;">
+                <h2>🏆 Топ-10 водіїв</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 13px;">
+                    <thead><tr style="background: #353550;">
+                        <th style="padding: 8px; text-align: left;">№</th>
+                        <th style="padding: 8px; text-align: left;">Ім'я</th>
+                        <th style="padding: 8px; text-align: center;">💵</th>
+                        <th style="padding: 8px; text-align: center;">✅</th>
+                        <th style="padding: 8px; text-align: center;">⭐</th>
+                    </tr></thead>
+                    <tbody id="top-drivers"></tbody>
+                </table>
+            </div>
+
+            <!-- ШТРАФИ/БОНУСИ -->
+            <div class="bonus-section" style="margin-top: 30px;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+                    <h2 style="margin: 0;">💸 Штрафи/Бонуси</h2>
+                    <div style="width: 4px; height: 4px; background: #667eea; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="position: relative;">
+                        <input type="text" id="bonus-driver-id" placeholder="ID водія" 
+                            style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(102, 126, 234, 0.3); border-radius: 12px; color: #e0e0e0; font-size: 14px; backdrop-filter: blur(10px); transition: all 0.3s ease; outline: none;"
+                            onfocus="this.style.background='rgba(102, 126, 234, 0.15)'; this.style.borderColor='rgba(102, 126, 234, 0.6)';"
+                            onblur="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.borderColor='rgba(102, 126, 234, 0.3)';">
+                        <label style="position: absolute; top: 50%; left: 16px; transform: translateY(-50%); color: #b0b0b0; font-size: 12px; pointer-events: none; opacity: 0.6;">👤</label>
+                    </div>
+                    
+                    <div style="position: relative;">
+                        <input type="number" id="bonus-amount" placeholder="Сума (грн)" 
+                            style="width: 100%; padding: 14px 16px; background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(102, 126, 234, 0.3); border-radius: 12px; color: #e0e0e0; font-size: 14px; backdrop-filter: blur(10px); transition: all 0.3s ease; outline: none;"
+                            onfocus="this.style.background='rgba(102, 126, 234, 0.15)'; this.style.borderColor='rgba(102, 126, 234, 0.6)';"
+                            onblur="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.borderColor='rgba(102, 126, 234, 0.3)';">
+                        <label style="position: absolute; top: 50%; left: 16px; transform: translateY(-50%); color: #b0b0b0; font-size: 12px; pointer-events: none; opacity: 0.6;">💵</label>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <button onclick="addBonus()" style="padding: 14px 20px; background: linear-gradient(135deg, #34c759 0%, #30a650 100%); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3); backdrop-filter: blur(10px);"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(52, 199, 89, 0.5)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(52, 199, 89, 0.3)';">
+                        ➕ Додати бонус
+                    </button>
+                    <button onclick="addPenalty()" style="padding: 14px 20px; background: linear-gradient(135deg, #ff3b30 0%, #ff1744 100%); color: white; border: none; border-radius: 12px; font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(255, 59, 48, 0.3); backdrop-filter: blur(10px);"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 25px rgba(255, 59, 48, 0.5)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(255, 59, 48, 0.3)';">
+                        ➖ Застосувати штраф
+                    </button>
+                </div>
+            </div>
+            
+            <style>
+                .bonus-section {
+                    background: rgba(30, 30, 45, 0.7);
+                    backdrop-filter: blur(20px);
+                    border-radius: 15px;
+                    padding: 25px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+                    border: 1px solid rgba(102, 126, 234, 0.2);
+                    transition: all 0.3s ease;
+                }
+                
+                .bonus-section:hover {
+                    background: rgba(30, 30, 45, 0.8);
+                    border-color: rgba(102, 126, 234, 0.4);
+                    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.15);
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { opacity: 0.5; }
+                    50% { opacity: 1; }
+                }
+            </style>
+
+            <!-- ОГОЛОШЕННЯ (ПОВНА ШИРИНА) -->
+            <div class="orders-section" style="margin-top: 30px;">
+                <h2>📢 Оголошення для водіїв</h2>
+                <input type="text" id="announcement-title" placeholder="Заголовок" style="width: 100%; padding: 10px; background: #2a2a3e; border: 1px solid #3a3a4e; border-radius: 8px; color: #e0e0e0; margin-bottom: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 200px; gap: 10px; margin-bottom: 10px;">
+                    <textarea id="announcement-text" placeholder="Текст оголошення..." style="padding: 10px; background: #2a2a3e; border: 1px solid #3a3a4e; border-radius: 8px; color: #e0e0e0; resize: vertical; min-height: 80px;"></textarea>
+                    <select id="announcement-type" style="padding: 10px; background: #2a2a3e; border: 1px solid #3a3a4e; border-radius: 8px; color: #e0e0e0; height: fit-content;">
+                        <option value="info">📌 Новина</option>
+                        <option value="important">⚠️ Важливо</option>
+                        <option value="success">✅ Хорошо</option>
+                    </select>
+                </div>
+                <button onclick="publishAnnouncement()" class="filter-btn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; cursor: pointer; margin-bottom: 15px;">📤 Опублікувати</button>
+                <div id="announcements-preview"></div>
+            </div>
+
+            <!-- ЕКСПОРТ ДАНИХ -->
+            <div class="orders-section" style="margin-top: 30px;">
+                <h2>📥 Експорт даних</h2>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <button onclick="exportReportJSON()" class="filter-btn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; cursor: pointer;">📊 JSON</button>
+                    <button onclick="exportStatisticsCSV()" class="filter-btn" style="width: 100%; padding: 12px; background: #667eea; color: white; border: none; cursor: pointer;">📈 CSV</button>
+                    <button onclick="backupDatabase()" class="filter-btn" style="width: 100%; padding: 12px; background: #34c759; color: white; border: none; cursor: pointer;">💾 Backup</button>
+                </div>
+            </div>
+
+            <!-- МОДАЛЬ РЕДАГУВАННЯ ВОДІЯ -->
+            <div id="edit-driver-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+                <div style="background: #2a2a3e; padding: 30px; border-radius: 15px; max-width: 450px; width: 100%; max-height: 80vh; overflow-y: auto;">
+                    <h3 style="color: #e0e0e0; margin-bottom: 20px;">✏️ Редагування профілю водія</h3>
+                    
+                    <!-- ФОТО З TELEGRAM -->
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <img id="driver-photo" src="https://via.placeholder.com/120/667eea/ffffff?text=Фото" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea; margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #b0b0b0;">📸 Фото з Telegram</div>
+                    </div>
+                    
+                    <input type="text" id="edit-driver-name" placeholder="Ім'я" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #3a3a4e; border-radius: 8px; color: #e0e0e0; margin-bottom: 10px;">
+                    <input type="tel" id="edit-driver-phone" placeholder="Телефон" style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #3a3a4e; border-radius: 8px; color: #e0e0e0; margin-bottom: 10px;">
+                    <textarea id="edit-driver-bio" placeholder="Про мене..." style="width: 100%; padding: 10px; background: #1a1a2e; border: 1px solid #3a3a4e; border-radius: 8px; color: #e0e0e0; margin-bottom: 15px; resize: vertical; min-height: 60px;"></textarea>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="saveDriverEdit()" class="filter-btn" style="flex: 1; background: #667eea;">✓ Зберегти</button>
+                        <button onclick="closeEditModal()" class="filter-btn" style="flex: 1; background: #8e8e93;">✕ Скасувати</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+        <script>
+            let allDrivers = [];
+            let earningsChart = null;
+
+            async function loadStats() {
+                try {
+                    const stats = await fetch('/admin-stats').then(r => r.json());
+                    document.getElementById('total-orders').textContent = stats.totalOrders;
+                    document.getElementById('completed-orders').textContent = stats.completedOrders;
+                    document.getElementById('pending-orders').textContent = stats.pendingOrders;
+                    document.getElementById('active-drivers').textContent = stats.activeDrivers;
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            // ГРАФІК ЗАРОБІТКІВ
+            async function loadEarningsChart() {
+                const stats = await fetch('/earnings-chart').then(r => r.json());
+                const ctx = document.getElementById('earningsChart')?.getContext('2d');
+                if (!ctx) return;
+                
+                if (earningsChart) earningsChart.destroy();
+                earningsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: stats.days,
+                        datasets: [{
+                            label: '💵 Заробіток (грн)',
+                            data: stats.earnings,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: { legend: { display: true } }
+                    }
+                });
+            }
+
+            // ТОП-10 ВОДІЇВ
+            async function loadTopDrivers() {
+                const drivers = await fetch('/top-drivers').then(r => r.json());
+                const table = document.getElementById('top-drivers');
+                table.innerHTML = drivers.map((d, i) => `
+                    <tr style="border-bottom: 1px solid #3a3a4e;">
+                        <td style="padding: 10px;">${i+1}</td>
+                        <td style="padding: 10px;">${d.customName || d.username}</td>
+                        <td style="padding: 10px; text-align: center; color: #34c759;">${d.earnings} грн</td>
+                        <td style="padding: 10px; text-align: center; color: #667eea;">${d.completedOrders}</td>
+                        <td style="padding: 10px; text-align: center; color: #ffb800;">⭐ ${d.averageRating.toFixed(1)}</td>
+                    </tr>
+                `).join('');
+            }
+
+            // ШТРАФИ/БОНУСИ
+            async function addBonus() {
+                const driverId = document.getElementById('bonus-driver-id').value.trim();
+                const amount = parseInt(document.getElementById('bonus-amount').value);
+                if (!driverId || !amount) return alert('⚠️ Заповніть ID водія та суму');
+                
+                try {
+                    console.log('📤 Відправляю бонус:', { driverId, amount });
+                    const res = await fetch('/add-balance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ driverId, amount })
+                    });
+                    
+                    const data = await res.json();
+                    console.log('📥 Відповідь від сервера:', data);
+                    
+                    if (!res.ok) {
+                        return alert('❌ ' + (data.error || 'Помилка'));
+                    }
+                    
+                    document.getElementById('bonus-driver-id').value = '';
+                    document.getElementById('bonus-amount').value = '';
+                    alert('✅ Бонус +' + amount + ' грн додано! Новий баланс: ' + data.balance + ' грн');
+                    loadStats();
+                    loadDrivers();
+                } catch (e) {
+                    console.error('❌ Помилка:', e);
+                    alert('❌ Помилка: ' + e.message);
+                }
+            }
+
+            async function addPenalty() {
+                const driverId = document.getElementById('bonus-driver-id').value.trim();
+                const amount = parseInt(document.getElementById('bonus-amount').value);
+                if (!driverId || !amount) return alert('⚠️ Заповніть ID водія та суму');
+                
+                try {
+                    console.log('📤 Відправляю штраф:', { driverId, amount: -amount });
+                    const res = await fetch('/add-balance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ driverId, amount: -amount })
+                    });
+                    
+                    const data = await res.json();
+                    console.log('📥 Відповідь від сервера:', data);
+                    
+                    if (!res.ok) {
+                        return alert('❌ ' + (data.error || 'Помилка'));
+                    }
+                    
+                    document.getElementById('bonus-driver-id').value = '';
+                    document.getElementById('bonus-amount').value = '';
+                    alert('✅ Штраф -' + amount + ' грн застосовано! Новий баланс: ' + data.balance + ' грн');
+                    loadStats();
+                    loadDrivers();
+                } catch (e) {
+                    console.error('❌ Помилка:', e);
+                    alert('❌ Помилка: ' + e.message);
+                }
+            }
+
+            // РЕЗЕРВНА КОПІЯ БД
+            async function backupDatabase() {
+                const db = await fetch('/backup-db').then(r => r.json());
+                const link = document.createElement('a');
+                link.href = 'data:application/json,' + encodeURIComponent(JSON.stringify(db, null, 2));
+                link.download = `backup_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            }
+
+            // ОГОЛОШЕННЯ
+            async function publishAnnouncement() {
+                const title = document.getElementById('announcement-title').value.trim();
+                const text = document.getElementById('announcement-text').value.trim();
+                const type = document.getElementById('announcement-type').value;
+                
+                if (!title || !text) return alert('Заповніть всі поля');
+                
+                await fetch('/publish-announcement', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, text, type })
+                });
+                
+                document.getElementById('announcement-title').value = '';
+                document.getElementById('announcement-text').value = '';
+                loadAnnouncements();
+                alert('✅ Оголошення опубліковано!');
+            }
+
+            async function loadAnnouncements() {
+                const res = await fetch('/announcements').then(r => r.json());
+                const div = document.getElementById('announcements-preview');
+                div.innerHTML = res.slice(0, 3).map(a => `
+                    <div style="background: #353550; padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid ${a.type === 'important' ? '#ff6b6b' : a.type === 'success' ? '#34c759' : '#667eea'};">
+                        <div style="color: #e0e0e0; font-weight: 600; font-size: 13px;">${a.title}</div>
+                        <div style="color: #b0b0b0; font-size: 12px; margin-top: 4px;">${a.text.substring(0, 60)}${a.text.length > 60 ? '...' : ''}</div>
+                    </div>
+                `).join('') || '<div style="color: #b0b0b0; text-align: center; padding: 20px;">Немає оголошень</div>';
+            }
+
+            // ГЛОБАЛЬНІ ЗМІННІ - МАЮТЬ БУТИ НА ПОЧАТКУ!
+            let allDrivers = [];
+            let currentFilter = 'all';
+            let currentEditDriver = null;
+
+            // ТЕПЕР ІНІЦІАЛІЗУЄМО
+            loadStats();
+            loadEarningsChart();
+            loadTopDrivers();
+            loadUsers();
+            loadOrders();
+            loadAnnouncements();
+            loadDrivers();
+            setInterval(() => { loadStats(); loadEarningsChart(); loadTopDrivers(); loadDrivers(); }, 10000);
+
+            async function loadStats() {
+                try {
+                    const stats = await fetch('/admin-stats').then(r => r.json());
+                    animateCounter('total-orders', stats.totalOrders);
+                    animateCounter('completed-orders', stats.completedOrders);
+                    animateCounter('pending-orders', stats.pendingOrders);
+                    animateCounter('active-drivers', stats.activeDrivers);
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            function animateCounter(id, target) {
+                const el = document.getElementById(id);
+                const current = parseInt(el.textContent) || 0;
+                if (current !== target) {
+                    el.classList.add('counter');
+                    el.textContent = target;
+                }
+            }
+
+            async function loadDrivers() {
+                try {
+                    allDrivers = await fetch('/all-drivers-stats').then(r => r.json());
+                    filterDrivers(currentFilter);
+                } catch (e) {
+                    console.error('❌ Помилка завантаження водіїв:', e);
+                }
+            }
+
+            function filterDrivers(filter) {
+                currentFilter = filter || 'all';
+                const filterBtns = document.querySelectorAll('.filter-btn');
+                if (event && event.target) {
+                    filterBtns.forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+                }
+
+                let filtered = allDrivers;
+                if (filter === 'online') {
+                    filtered = allDrivers.filter(d => d.isOnline);
+                } else if (filter === 'top') {
+                    filtered = allDrivers.sort((a, b) => b.stats.averageRating - a.stats.averageRating).slice(0, 5);
+                } else if (filter === 'active') {
+                    filtered = allDrivers.filter(d => d.stats.completedOrders > 0).sort((a, b) => b.stats.completedOrders - a.stats.completedOrders);
+                }
+
+                const driversDiv = document.getElementById('drivers-list');
+                if (filtered.length === 0) {
+                    driversDiv.innerHTML = '<div style="text-align: center; color: #86868b;">Немає водіїв з цим фільтром</div>';
+                } else {
+                    driversDiv.innerHTML = filtered.map(d => {
+                        const badges = getBadgesForDriver(d);
+                        return `
+                        <div class="driver-card" style="animation: slideInUp 0.3s ease-out;">
+                            <div class="driver-header">
+                                <div class="driver-name">${d.customName || d.username || 'Водій #' + d.id}</div>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <div class="driver-status">${d.isOnline ? '🟢 Онлайн' : '🔴 Офлайн'}</div>
+                                    <button onclick="openEditModal('${d.id}')" class="filter-btn" style="padding: 6px 12px; font-size: 12px;">✏️</button>
+                                </div>
+                            </div>
+                            ${badges ? `<div class="badges-container">${badges}</div>` : ''}
+                            <div class="driver-stats-grid">
+                                <div class="driver-stat">
+                                    <div class="driver-stat-value">${d.stats.completedOrders}</div>
+                                    <div class="driver-stat-label">Завершено</div>
+                                </div>
+                                <div class="driver-stat">
+                                    <div class="driver-stat-value">${d.stats.totalRatings}</div>
+                                    <div class="driver-stat-label">Оцінок</div>
+                                </div>
+                                <div class="driver-stat">
+                                    <div class="driver-stat-value">⭐${d.stats.averageRating}</div>
+                                    <div class="driver-stat-label">Рейтинг</div>
+                                </div>
+                                <div class="driver-stat">
+                                    <div class="driver-stat-value">${new Date(d.lastActive).toLocaleTimeString('uk-UA')}</div>
+                                    <div class="driver-stat-label">Активність</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                }
+            }
+
+            function getBadgesForDriver(d) {
+                const badges = [];
+                if (d.stats.averageRating >= 4.8) badges.push('<span class="badge">⭐ Топ-водій</span>');
+                if (d.stats.completedOrders >= 100) badges.push('<span class="badge legend">🏆 Легенда</span>');
+                if (d.stats.completedOrders >= 50) badges.push('<span class="badge active">🔥 Активний</span>');
+                if (d.stats.completedOrders >= 20 && d.stats.averageRating >= 4.5) badges.push('<span class="badge premium">💎 Премум</span>');
+                if (d.stats.totalRatings >= 50 && d.stats.averageRating === 5) badges.push('<span class="badge perfect">⚡ Ідеальний</span>');
+                return badges.join('');
+            }
+
+            // ЕКСПОРТ ЗВІТІВ
+            function exportReportJSON() {
+                const data = { drivers: allDrivers, timestamp: new Date().toISOString() };
+                const link = document.createElement('a');
+                link.href = 'data:application/json,' + encodeURIComponent(JSON.stringify(data, null, 2));
+                link.download = `report_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            }
+
+            function exportStatisticsCSV() {
+                let csv = 'Ім\'я,Рейтинг,Завершено,Оцінок,Онлайн\n';
+                allDrivers.forEach(d => {
+                    csv += `"${d.customName || d.username}",${d.stats.averageRating},${d.stats.completedOrders},${d.stats.totalRatings},${d.isOnline ? 'Так' : 'Ні'}\n`;
+                });
+                const link = document.createElement('a');
+                link.href = 'data:text/csv,' + encodeURIComponent(csv);
+                link.download = `drivers_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+            }
+
+            // РЕДАГУВАННЯ ВОДІЯ
+            window.openEditModal = async function(driverId) {
+                try {
+                    console.log('🔧 Відкриття модалі для водія:', driverId);
+                    const driver = allDrivers.find(d => String(d.id) === String(driverId));
+                    if (!driver) {
+                        alert('❌ Водій не знайдений');
+                        return;
+                    }
+                    currentEditDriver = driver;
+                    document.getElementById('edit-driver-name').value = driver.customName || driver.username || '';
+                    document.getElementById('edit-driver-phone').value = driver.phone || '';
+                    document.getElementById('edit-driver-bio').value = driver.bio || '';
+                    
+                    // Завантажуємо фото з Telegram
+                    const photoRes = await fetch(`/get-driver-photo/${driverId}`, { method: 'POST' }).then(r => r.json());
+                    if (photoRes.photoUrl) {
+                        document.getElementById('driver-photo').src = photoRes.photoUrl;
+                    }
+                    
+                    document.getElementById('edit-driver-modal').style.display = 'flex';
+                } catch (e) {
+                    console.error('❌ Помилка:', e);
+                    alert('❌ Помилка при відкритті модалі');
+                }
+            };
+
+            window.saveDriverEdit = async function() {
+                if (!currentEditDriver) return alert('❌ Водій не вибраний');
+                const name = document.getElementById('edit-driver-name').value.trim();
+                const phone = document.getElementById('edit-driver-phone').value.trim();
+                const bio = document.getElementById('edit-driver-bio').value.trim();
+                if (!name) return alert('❌ Введіть ім\'я');
+                try {
+                    const res = await fetch('/update-driver-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ driverId: currentEditDriver.id, name, phone, bio })
+                    });
+                    if (!res.ok) throw new Error('Сервер повернув помилку');
+                    closeEditModal();
+                    loadDrivers();
+                    alert('✅ Профіль оновлено!');
+                    console.log('✅ Профіль збережено');
+                } catch (e) {
+                    console.error('❌ Помилка:', e);
+                    alert('❌ Помилка: ' + e.message);
+                }
+            };
+
+            window.closeEditModal = function() {
+                document.getElementById('edit-driver-modal').style.display = 'none';
+                currentEditDriver = null;
+            };
+        </script>
+    </body>
+</html>

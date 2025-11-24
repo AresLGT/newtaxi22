@@ -1,0 +1,22 @@
+{
+  "users": {
+    "7677921905": {
+      "id": "7677921905",
+      "username": "admin",
+      "customName": "Admin",
+      "role": "admin",
+      "isOnline": false,
+      "lastActive": "2025-11-21T13:26:42.717Z"
+    }
+  },
+  "driverCodes": [],
+  "orders": [],
+  "ratings": [],
+  "messages": [],
+  "notifications": [],
+  "rateLimits": {
+    "508585483": [
+      1763762172884
+    ]
+  }
+}
