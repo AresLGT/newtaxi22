@@ -7,7 +7,6 @@ import {
   insertOrderSchema,
   insertChatMessageSchema,
 } from "@shared/schema";
-import { handleTelegramUpdate, getBotInfo, autoSetupWebhook } from "./telegram";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -268,32 +267,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: "Invalid message data" });
     }
   });
-
-  // Telegram webhook
-  app.post("/api/telegram/webhook", async (req, res) => {
-    try {
-      // Setup webhook on first telegram message (auto-detect from request)
-      if (!process.env.WEBHOOK_SETUP_DONE) {
-        const protocol = req.headers["x-forwarded-proto"] || "https";
-        const host = req.headers["x-forwarded-host"] || req.headers.host;
-        if (host) {
-          const baseUrl = `${protocol}://${host}`;
-          await autoSetupWebhook(baseUrl);
-          process.env.WEBHOOK_SETUP_DONE = "true";
-        }
-      }
-
-      const update = req.body;
-      await handleTelegramUpdate(update);
-      res.json({ ok: true });
-    } catch (error) {
-      console.error("Telegram webhook error:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Check bot connection on startup
-  await getBotInfo();
 
   const httpServer = createServer(app);
   return httpServer;
