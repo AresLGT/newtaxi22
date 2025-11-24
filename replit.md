@@ -4,7 +4,18 @@
 
 This is a Telegram-based taxi service platform that enables ride-hailing, cargo transport, courier delivery, and towing services. The application features a role-based system with three distinct user types: Clients (who request rides), Drivers (who fulfill orders), and Administrators (who manage the platform). Built as a Telegram Web App, it provides a mobile-first experience optimized for quick interactions and real-time order management.
 
-The platform implements a bidding system where drivers can propose prices for orders, and clients can accept or reject these proposals. The system includes real-time chat functionality, order tracking, and administrative tools for driver management through access codes.
+The platform implements a transparent tariff-based pricing system where clients see upfront prices calculated from distance and service type. The system includes real-time chat functionality, order tracking, driver ratings, and administrative tools for driver management through access codes.
+
+## Recent Changes
+
+**November 24, 2025**: Major integration of functionality from 3123-main project:
+- ✅ Integrated Telegram Bot (`server/telegram-bot.ts`) with full command support (/start, /generate, /codes, /drivers, /stats)
+- ✅ Implemented tariff-based pricing system (`shared/tariffs.ts`) replacing bidding mechanism
+- ✅ Added driver rating system with stars (1-5) and optional comments
+- ✅ Implemented rate limiting middleware (max 5 orders per minute per user, IP-based fallback)
+- ✅ Simplified order workflow: pending → accepted → in_progress → completed
+- ✅ Updated UI components to display upfront pricing and distance-based calculations
+- ✅ Added driver statistics and badges (⭐ Топ-водій, 🏆 Легенда, 🔥 Активний, 💎 Преміум, ⚡ Ідеальний)
 
 ## User Preferences
 
@@ -44,7 +55,8 @@ Preferred communication style: Simple, everyday language.
 
 **API Design**: RESTful API with the following endpoint structure:
 - User management: `/api/users/:id`, `/api/users/register-driver`
-- Order management: `/api/orders/active`, `/api/orders/:orderId/accept`, `/api/orders/:orderId/propose-bid`, `/api/orders/:orderId/respond-bid`
+- Order management: `/api/orders/active`, `/api/orders/:orderId/accept`, `/api/orders/:orderId/rate`
+- Driver information: `/api/drivers/:id/stats`, `/api/drivers/:id/badges`
 - Admin operations: `/api/admin/drivers`, `/api/admin/generate-code`
 - Chat: `/api/chat/:orderId`
 
@@ -68,8 +80,8 @@ Preferred communication style: Simple, everyday language.
 
 2. **Orders Table**: Central entity for all service requests
    - Primary key: `orderId` (UUID)
-   - Fields: `type` (taxi/cargo/courier/towing), `clientId`, `driverId`, `from`, `to`, `comment`, `requiredDetail`, `status`, `driverBidPrice`, `isTaken`, `proposalAttempts[]`, `createdAt`
-   - Status flow: new → bidding → accepted → in_progress → completed (or rejected_by_client)
+   - Fields: `type` (taxi/cargo/courier/towing), `clientId`, `driverId`, `from`, `to`, `comment`, `requiredDetail`, `status`, `price`, `distanceKm`, `createdAt`
+   - Status flow: pending → accepted → in_progress → completed (or cancelled)
 
 3. **Access Codes Table**: Admin-generated codes for driver registration
    - Primary key: `code`
@@ -79,12 +91,23 @@ Preferred communication style: Simple, everyday language.
    - Primary key: `id` (UUID)
    - Fields: `orderId`, `senderId`, `message`, `createdAt`
 
+5. **Ratings Table**: Driver performance ratings from completed orders
+   - Primary key: `id` (UUID)
+   - Fields: `orderId`, `driverId`, `stars` (1-5), `comment`, `createdAt`
+
+**Tariff System**:
+- Таксі 🚕: Base 50₴ + 15₴/км
+- Вантажний 🚚: Base 100₴ + 25₴/км
+- Кур'єр 📦: Base 80₴ + 20₴/км
+- Буксир 🪝: Base 200₴ + 30₴/км
+
 **Order Workflow**:
-1. Client creates order (status: "new")
-2. Driver accepts order (status: "accepted", driver assigned)
-3. Driver proposes bid price (status: "bidding")
-4. Client responds to bid (accepts → "in_progress" or rejects → "rejected_by_client")
+1. Client creates order with distance input → price calculated automatically (status: "pending")
+2. Driver views pending orders with pre-calculated prices
+3. Driver accepts order (status: "accepted", driver assigned)
+4. Driver starts ride (status: "in_progress")
 5. Order completion (status: "completed")
+6. Client rates driver (1-5 stars + optional comment)
 
 ### Authentication & Authorization
 
@@ -102,7 +125,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Third-Party Services
 
-**Telegram Bot API**: Core platform for user authentication and Web App hosting. The application script is loaded via `telegram.org/js/telegram-web-app.js`.
+**Telegram Bot API**: Core platform for user authentication, notifications, and Web App hosting via `node-telegram-bot-api`. Supports commands (/start, /generate, /codes, /drivers, /stats) and Web App buttons for client/driver/admin interfaces.
 
 **Database Service**: Configured for Neon serverless PostgreSQL (`@neondatabase/serverless`), a cloud-native PostgreSQL platform optimized for serverless environments. Connection managed via `DATABASE_URL` environment variable.
 
