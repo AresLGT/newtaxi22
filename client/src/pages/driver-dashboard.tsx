@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { MapPin, Navigation, DollarSign, User, Plus, ArrowLeft, Calculator } from "lucide-react";
+import { MapPin, Navigation, DollarSign, User, Plus, ArrowLeft, Calculator, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -43,16 +43,27 @@ export default function DriverDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [distanceDialog, setDistanceDialog] = useState(false);
 
-  // Защита маршруту - тільки водії можуть тут бути
+  // Защита маршруту
   useEffect(() => {
     if (role !== "driver") {
       setLocation("/");
     }
   }, [role, setLocation]);
-  const { data: orders = [], isLoading } = useQuery<Order[]>({
+
+  // 1. Отримуємо загальний список активних замовлень (для вибору)
+  const { data: activeOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
     refetchInterval: 3000,
   });
+
+  // 2. Отримуємо поточне замовлення водія (якщо він вже взяв когось)
+  const { data: currentOrders = [], isLoading: isLoadingCurrent } = useQuery<Order[]>({
+    queryKey: [`/api/orders/driver/${driverId}/current`],
+    enabled: !!driverId, // Запит йде тільки якщо є ID водія
+    refetchInterval: 2000,
+  });
+
+  const currentOrder = currentOrders[0]; // Беремо перше (і єдине) активне
 
   const distanceForm = useForm<z.infer<typeof distanceSchema>>({
     resolver: zodResolver(distanceSchema),
@@ -61,26 +72,27 @@ export default function DriverDashboard() {
     },
   });
 
+  // Мутація: Прийняти замовлення
   const acceptOrderMutation = useMutation({
     mutationFn: async ({ orderId, distanceKm }: { orderId: string; distanceKm?: number }) => {
-      if (!driverId) {
-        throw new Error("Driver ID not available");
-      }
+      if (!driverId) throw new Error("Driver ID not available");
+      
       const response = await apiRequest("POST", `/api/orders/${orderId}/accept`, { 
         driverId, 
         distanceKm: distanceKm && distanceKm > 0 ? distanceKm : undefined
       });
       const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (data.error) throw new Error(data.error);
       return data;
     },
     onSuccess: () => {
+      // Оновлюємо обидва списки: активні (щоб зникло) і поточні (щоб з'явилося)
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
+      
       toast({
-        title: "Замовлення прийнято",
-        description: "Клієнт буде повідомлений про прийняття замовлення",
+        title: "Замовлення прийнято!",
+        description: "Переходимо до режиму виконання.",
       });
       setDistanceDialog(false);
       setSelectedOrder(null);
@@ -88,12 +100,24 @@ export default function DriverDashboard() {
     },
     onError: (error) => {
       const errorMessage = error instanceof Error ? error.message : "Не вдалося прийняти замовлення";
-      toast({
-        title: "Помилка",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Помилка", description: errorMessage, variant: "destructive" });
     },
+  });
+
+  // Мутація: Завершити замовлення
+  const completeOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await apiRequest("POST", `/api/orders/${orderId}/complete`);
+      if (!response.ok) throw new Error("Failed to complete order");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
+      toast({ title: "Поїздку завершено!", description: "Можна брати нові замовлення." });
+    },
+    onError: () => {
+      toast({ title: "Помилка", description: "Не вдалося завершити замовлення", variant: "destructive" });
+    }
   });
 
   const handleAcceptOrder = (order: Order) => {
@@ -116,6 +140,71 @@ export default function DriverDashboard() {
   const tariff = tariffKey ? TARIFFS[tariffKey] : null;
   const estimatedPrice = watchedDistance > 0 && tariff ? calculatePrice(tariffKey as TariffKey, watchedDistance) : 0;
 
+  // --- ВІДОБРАЖЕННЯ: АКТИВНА ПОЇЗДКА ---
+  if (currentOrder) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
+        <Card className="w-full max-w-md border-primary border-2 shadow-lg">
+          <CardHeader className="bg-primary/10 pb-4">
+            <div className="flex justify-between items-center mb-2">
+               <Badge className="bg-green-600 hover:bg-green-700 text-white animate-pulse">
+                 В роботі
+               </Badge>
+               <span className="font-bold text-lg">{currentOrder.price} грн</span>
+            </div>
+            <CardTitle className="text-xl">Поточне замовлення</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-6">
+            
+            {/* Маршрут */}
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  <div className="w-0.5 h-full bg-border my-1" />
+                  <Navigation className="w-5 h-5 text-primary" />
+                </div>
+                <div className="space-y-4 flex-1">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Забрати клієнта:</p>
+                    <p className="font-medium text-lg leading-tight">{currentOrder.from}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Відвезти до:</p>
+                    <p className="font-medium text-lg leading-tight">{currentOrder.to}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-muted p-3 rounded-lg space-y-2 text-sm">
+               <div className="flex justify-between">
+                 <span>Дистанція:</span>
+                 <span className="font-medium">{currentOrder.distanceKm} км</span>
+               </div>
+               {currentOrder.comment && (
+                 <div className="pt-2 border-t border-border mt-2">
+                   <p className="text-muted-foreground text-xs">Коментар:</p>
+                   <p>{currentOrder.comment}</p>
+                 </div>
+               )}
+            </div>
+
+            <Button 
+              className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => completeOrderMutation.mutate(currentOrder.orderId)}
+              disabled={completeOrderMutation.isPending}
+            >
+              {completeOrderMutation.isPending ? "Завершення..." : "Завершити поїздку"}
+              <CheckCircle2 className="ml-2 w-6 h-6" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // --- ВІДОБРАЖЕННЯ: СПИСОК ЗАМОВЛЕНЬ ---
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
@@ -125,7 +214,6 @@ export default function DriverDashboard() {
               variant="ghost"
               size="icon"
               onClick={() => setLocation("/")}
-              data-testid="button-back"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -137,7 +225,6 @@ export default function DriverDashboard() {
               variant="ghost"
               size="icon"
               onClick={() => setLocation("/driver/profile")}
-              data-testid="button-profile"
             >
               <User className="w-5 h-5" />
             </Button>
@@ -150,19 +237,17 @@ export default function DriverDashboard() {
           className="w-full"
           variant="outline"
           onClick={() => setLocation("/")}
-          data-testid="button-create-order-as-client"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Викликати таксі для себе
+          Створити замовлення (як клієнт)
         </Button>
 
-        {isLoading ? (
+        {isLoadingActive ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <Card key={i} className="border-card-border">
                 <CardHeader className="space-y-3">
                   <Skeleton className="h-6 w-24" />
-                  <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-full" />
                 </CardHeader>
                 <CardContent>
@@ -171,21 +256,20 @@ export default function DriverDashboard() {
               </Card>
             ))}
           </div>
-        ) : orders.length === 0 ? (
+        ) : activeOrders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
               <MapPin className="w-8 h-8 text-muted-foreground opacity-40" />
             </div>
-            <p className="text-base text-muted-foreground">Немає активних замовлень</p>
-            <p className="text-sm text-muted-foreground mt-1">Нові замовлення з'являться тут</p>
+            <p className="text-base text-muted-foreground">Немає нових замовлень</p>
+            <p className="text-sm text-muted-foreground mt-1">Очікуйте...</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {orders.map((order) => (
+            {activeOrders.map((order) => (
               <Card
                 key={order.orderId}
                 className="border-card-border"
-                data-testid={`card-order-${order.orderId}`}
               >
                 <CardHeader className="space-y-3 pb-3">
                   <div className="flex items-start justify-between gap-2">
@@ -212,31 +296,15 @@ export default function DriverDashboard() {
                         <span className="font-medium">Куди:</span> {order.to}
                       </div>
                     </div>
-                    {order.distanceKm && (
-                      <div className="text-sm text-muted-foreground">
-                        <span className="font-medium">Відстань:</span> {order.distanceKm} км
-                      </div>
-                    )}
                   </div>
-                  {order.requiredDetail && (
-                    <div className="text-sm bg-muted rounded-lg p-3">
-                      <span className="font-medium">Деталі:</span> {order.requiredDetail}
-                    </div>
-                  )}
-                  {order.comment && (
-                    <div className="text-sm text-muted-foreground">
-                      <span className="font-medium">Коментар:</span> {order.comment}
-                    </div>
-                  )}
                 </CardHeader>
                 <CardContent className="pt-0">
                   <Button
                     className="w-full h-12 font-semibold"
                     onClick={() => handleAcceptOrder(order)}
-                    data-testid={`button-accept-${order.orderId}`}
                     disabled={acceptOrderMutation.isPending}
                   >
-                    {acceptOrderMutation.isPending ? "Обробка..." : "Прийняти замовлення"}
+                    Прийняти замовлення
                   </Button>
                 </CardContent>
               </Card>
@@ -245,111 +313,69 @@ export default function DriverDashboard() {
         )}
       </div>
 
-      {/* Distance Dialog */}
+      {/* Діалог підтвердження дистанції */}
       <Dialog open={distanceDialog} onOpenChange={setDistanceDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calculator className="w-5 h-5" />
-              Калькулятор вартості замовлення
+              Розрахунок вартості
             </DialogTitle>
             <DialogDescription>
-              Вкажіть відстань та переглядьте розрахунок ціни
+              Підтвердіть відстань для розрахунку точної ціни
             </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && tariff && (
             <div className="space-y-4">
-              {/* Тариф */}
               <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <DollarSign className="w-4 h-4 text-primary" />
-                  <div className="text-sm font-semibold text-foreground">Тариф</div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Базова ціна:</span>
-                    <span className="text-sm font-bold text-foreground">{tariff.basePrice} грн</span>
+                <div className="space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Подача:</span>
+                    <span className="font-bold">{tariff.basePrice} грн</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">За кілометр:</span>
-                    <span className="text-sm font-bold text-foreground">{tariff.perKm} гривень</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Адреси */}
-              <div className="space-y-2 px-1">
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-xs text-muted-foreground mb-0.5">Забрати</div>
-                    <div className="text-sm font-medium">{selectedOrder.from}</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Navigation className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-xs text-muted-foreground mb-0.5">Куди</div>
-                    <div className="text-sm font-medium">{selectedOrder.to}</div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Тариф:</span>
+                    <span className="font-bold">{tariff.perKm} грн/км</span>
                   </div>
                 </div>
               </div>
 
               <Form {...distanceForm}>
                 <form onSubmit={distanceForm.handleSubmit(handleSubmitDistance)} className="space-y-4">
-                  {/* Відстань */}
                   <FormField
                     control={distanceForm.control}
                     name="distanceKm"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-2">
-                          <Calculator className="w-4 h-4 text-primary" />
-                          Відстань (км) *
-                        </FormLabel>
+                        <FormLabel>Дистанція (км)</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="Наприклад: 120.39"
+                            step="0.1"
+                            placeholder="Наприклад: 15.5"
                             {...field}
-                            onChange={(e) => {
-                              const value = parseFloat(e.target.value) || 0;
-                              field.onChange(value);
-                            }}
-                            data-testid="input-distance-driver"
-                            className="text-base h-12 font-semibold"
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            className="text-lg h-12"
                           />
                         </FormControl>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />
 
-                  {/* Орієнтовна вартість */}
                   {estimatedPrice > 0 && (
-                    <div className="p-4 bg-primary rounded-lg">
-                      <div className="text-xs text-primary-foreground/80 mb-2">Орієнтовна вартість</div>
-                      <div className="text-3xl font-bold text-primary-foreground mb-2">{estimatedPrice} грн</div>
-                      <div className="text-xs text-primary-foreground/70 space-y-0.5">
-                        <div>{tariff.basePrice} грн (базова ціна)</div>
-                        <div>{watchedDistance.toFixed(2)} км × {tariff.perKm} грн/км = {Math.ceil(watchedDistance * tariff.perKm)} грн</div>
-                        <div className="pt-1 border-t border-primary-foreground/20 mt-1">
-                          Всього: {tariff.basePrice} грн + {Math.ceil(watchedDistance * tariff.perKm)} грн = {estimatedPrice} грн
-                        </div>
-                      </div>
+                    <div className="p-4 bg-primary rounded-lg text-primary-foreground">
+                      <div className="text-sm opacity-90">Разом до сплати:</div>
+                      <div className="text-3xl font-bold">{estimatedPrice} грн</div>
                     </div>
                   )}
 
                   <Button
                     type="submit"
-                    className="w-full h-12 font-semibold"
-                    data-testid="button-submit-distance"
+                    className="w-full h-12 font-bold text-lg"
                     disabled={acceptOrderMutation.isPending || watchedDistance <= 0}
                   >
-                    {acceptOrderMutation.isPending ? "Обробка..." : "Підтвердити та прийняти"}
+                    {acceptOrderMutation.isPending ? "Обробка..." : "ПІДТВЕРДИТИ"}
                   </Button>
                 </form>
               </Form>
