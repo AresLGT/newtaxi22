@@ -1,12 +1,5 @@
 import { useContext } from "react";
-import type { UserRole } from "@shared/schema";
-import { UserContext } from "./user-provider";
-
-export interface UserContextType {
-  userId: string;
-  role: UserRole;
-  setRole: (role: UserRole) => void;
-}
+import { UserContext, type UserContextType } from "./user-provider";
 
 export function useUser(): UserContextType {
   const context = useContext(UserContext);

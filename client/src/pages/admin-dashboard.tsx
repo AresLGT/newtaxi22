@@ -22,30 +22,7 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { role, isLoading } = useUser();
-
-  // Redirect non-admins immediately, don't show anything
-  useEffect(() => {
-    if (!isLoading && role !== "admin") {
-      setLocation("/");
-    }
-  }, [role, isLoading, setLocation]);
-
-  // Don't render anything until we know the role
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-secondary-foreground">Завантаження...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render admin panel for non-admins
-  if (role !== "admin") {
-    return null;
-  }
+  
   const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -125,6 +102,30 @@ export default function AdminDashboard() {
       setBonusText("");
     },
   });
+
+  // Redirect non-admins immediately
+  useEffect(() => {
+    if (!isLoading && role !== "admin") {
+      setLocation("/");
+    }
+  }, [role, isLoading, setLocation]);
+
+  // Don't render anything until we know the role
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
+          <p className="text-secondary-foreground">Завантаження...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render admin panel for non-admins
+  if (role !== "admin") {
+    return null;
+  }
 
   const handleCopyCode = () => {
     if (generatedCode) {

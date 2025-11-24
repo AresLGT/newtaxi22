@@ -263,7 +263,19 @@ export class MemStorage implements IStorage {
 
   // Access Code methods
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    let code: string;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      attempts++;
+      if (attempts >= maxAttempts) {
+        code = randomUUID().substring(0, 8).toUpperCase();
+        break;
+      }
+    } while (this.accessCodes.has(code));
+
     const accessCode: AccessCode = {
       code,
       isUsed: false,

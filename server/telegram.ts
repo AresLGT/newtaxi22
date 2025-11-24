@@ -56,12 +56,11 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
         return;
       }
 
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      await storage.generateAccessCode(userId);
+      const accessCode = await storage.generateAccessCode(userId);
 
       await sendTelegramMessage(
         chatId,
-        `✅ Новий код доступу сгенерований:\n\n🔑 <code>${code}</code>\n\nПоділіться цим кодом з водієм для реєстрації.`,
+        `✅ Новий код доступу сгенерований:\n\n🔑 <code>${accessCode.code}</code>\n\nПоділіться цим кодом з водієм для реєстрації.`,
         undefined,
         { parse_mode: "HTML" }
       );
