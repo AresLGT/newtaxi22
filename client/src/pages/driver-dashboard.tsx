@@ -1,14 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MapPin, Navigation, DollarSign, User, Plus, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { MapPin, Navigation, DollarSign, User, Plus, ArrowLeft, Calculator } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/use-user";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { TARIFFS, calculatePrice, type TariffKey } from "@shared/tariffs";
 import type { Order } from "@shared/schema";
 
 const orderTypeLabels = {
@@ -18,10 +25,23 @@ const orderTypeLabels = {
   towing: "Евакуатор",
 };
 
+const orderTypeToTariff: Record<string, TariffKey> = {
+  taxi: 'Таксі 🚕',
+  cargo: 'Вантажний 🚚',
+  courier: 'Кур\'єр 📦',
+  towing: 'Буксир 🪝',
+};
+
+const distanceSchema = z.object({
+  distanceKm: z.number().min(0.1, "Вкажіть відстань"),
+});
+
 export default function DriverDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { userId: driverId, role } = useUser();
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [distanceDialog, setDistanceDialog] = useState(false);
 
   // Защита маршруту - тільки водії можуть тут бути
   useEffect(() => {
@@ -34,9 +54,16 @@ export default function DriverDashboard() {
     refetchInterval: 3000,
   });
 
+  const distanceForm = useForm<z.infer<typeof distanceSchema>>({
+    resolver: zodResolver(distanceSchema),
+    defaultValues: {
+      distanceKm: 0,
+    },
+  });
+
   const acceptOrderMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      return await apiRequest("POST", `/api/orders/${orderId}/accept`, { driverId });
+    mutationFn: async ({ orderId, distanceKm }: { orderId: string; distanceKm?: number }) => {
+      return await apiRequest("POST", `/api/orders/${orderId}/accept`, { driverId, distanceKm });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
@@ -44,6 +71,9 @@ export default function DriverDashboard() {
         title: "Замовлення прийнято",
         description: "Клієнт буде повідомлений про прийняття замовлення",
       });
+      setDistanceDialog(false);
+      setSelectedOrder(null);
+      distanceForm.reset();
     },
     onError: () => {
       toast({
@@ -55,8 +85,24 @@ export default function DriverDashboard() {
   });
 
   const handleAcceptOrder = (order: Order) => {
-    acceptOrderMutation.mutate(order.orderId);
+    setSelectedOrder(order);
+    setDistanceDialog(true);
+    distanceForm.reset();
   };
+
+  const handleSubmitDistance = (data: z.infer<typeof distanceSchema>) => {
+    if (selectedOrder) {
+      acceptOrderMutation.mutate({
+        orderId: selectedOrder.orderId,
+        distanceKm: data.distanceKm,
+      });
+    }
+  };
+
+  const watchedDistance = distanceForm.watch("distanceKm");
+  const tariffKey = selectedOrder ? orderTypeToTariff[selectedOrder.type] : null;
+  const tariff = tariffKey ? TARIFFS[tariffKey] : null;
+  const estimatedPrice = watchedDistance > 0 && tariff ? calculatePrice(tariffKey as TariffKey, watchedDistance) : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -186,6 +232,85 @@ export default function DriverDashboard() {
           </div>
         )}
       </div>
+
+      {/* Distance Dialog */}
+      <Dialog open={distanceDialog} onOpenChange={setDistanceDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Калькулятор кілометражу
+            </DialogTitle>
+            <DialogDescription>
+              Вкажіть приблизну відстань для замовлення
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOrder && tariff && (
+            <div className="space-y-4">
+              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                <div className="text-sm font-medium mb-2">Тариф</div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div>Базова ціна: <span className="font-semibold text-foreground">{tariff.basePrice} грн</span></div>
+                  <div>За кілометр: <span className="font-semibold text-foreground">{tariff.perKm} грн/км</span></div>
+                </div>
+              </div>
+
+              <Form {...distanceForm}>
+                <form onSubmit={distanceForm.handleSubmit(handleSubmitDistance)} className="space-y-4">
+                  <FormField
+                    control={distanceForm.control}
+                    name="distanceKm"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          <Calculator className="w-4 h-4 text-primary" />
+                          Відстань (км) *
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            placeholder="Наприклад: 5.5"
+                            {...field}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value) || 0;
+                              field.onChange(value);
+                            }}
+                            data-testid="input-distance-driver"
+                            className="text-base h-12"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {estimatedPrice > 0 && (
+                    <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                      <div className="text-xs text-muted-foreground mb-1">Орієнтовна вартість</div>
+                      <div className="text-2xl font-bold text-primary">{estimatedPrice} грн</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {tariff.basePrice} грн + {watchedDistance} км × {tariff.perKm} грн/км
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full h-12 font-semibold"
+                    data-testid="button-submit-distance"
+                    disabled={acceptOrderMutation.isPending}
+                  >
+                    {acceptOrderMutation.isPending ? "Обробка..." : "Прийняти замовлення"}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
