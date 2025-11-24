@@ -43,18 +43,23 @@ function AppWrapper() {
 
   useEffect(() => {
     if (!isLoading) {
-      // Redirect to appropriate dashboard based on role
+      // Логіка редіректів
       if (role === "admin" && location !== "/admin") {
         setLocation("/admin");
-      } else if (role === "driver" && location !== "/driver") {
+      } 
+      // Якщо водій на сторінці вибору ролі - відправити в кабінет
+      else if (role === "driver" && (location === "/role-selector")) {
         setLocation("/driver");
-      } else if (role === "client" && (location === "/" || location === "/role-selector")) {
+      }
+      // Примітка: Ми ПРИБРАЛИ суворий редірект для водія з інших сторінок, 
+      // щоб він міг створювати замовлення (ClientHome)
+      
+      else if (role === "client" && (location === "/" || location === "/role-selector")) {
         setLocation("/client");
       }
     }
   }, [role, isLoading, location, setLocation]);
 
-  // Show loading while determining user role
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">

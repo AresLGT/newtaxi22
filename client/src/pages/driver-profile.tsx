@@ -25,13 +25,32 @@ export default function DriverProfile() {
   const { toast } = useToast();
   const { userId: driverId } = useUser();
 
-  const { data: user } = useQuery<UserType>({
+  const { data: user, isLoading } = useQuery<UserType>({
     queryKey: [`/api/users/${driverId}`],
   });
+
+  const form = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+    },
+  });
+
+  // Оновлюємо форму, коли прийшли дані користувача
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.name || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: z.infer<typeof profileSchema>) => {
       const response = await apiRequest("PATCH", `/api/users/${driverId}`, data);
+      if (!response.ok) throw new Error("Failed to update profile");
       return await response.json();
     },
     onSuccess: () => {
@@ -40,7 +59,7 @@ export default function DriverProfile() {
         title: "Профіль оновлено",
         description: "Зміни успішно збережено",
       });
-      setLocation("/driver");
+      // Не перенаправляємо автоматично, щоб водій бачив результат
     },
     onError: () => {
       toast({
@@ -51,17 +70,11 @@ export default function DriverProfile() {
     },
   });
 
-  const form = useForm<z.infer<typeof profileSchema>>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: user?.name || "",
-      phone: user?.phone || "",
-    },
-  });
-
   const onSubmit = (data: z.infer<typeof profileSchema>) => {
     updateProfileMutation.mutate(data);
   };
+
+  if (isLoading) return <div className="p-4 text-center">Завантаження профілю...</div>;
 
   return (
     <div className="min-h-screen bg-background">
