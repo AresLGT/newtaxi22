@@ -11,7 +11,7 @@ import { useLocation } from "wouter";
 import { insertOrderSchema, type OrderType } from "@shared/schema";
 import { TARIFFS, calculatePrice, type TariffKey } from "@shared/tariffs";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/lib/use-user";
 import { useState } from "react";
@@ -77,6 +77,7 @@ export default function OrderForm({ params }: { params: { type: string } }) {
         title: "Замовлення створено",
         description: "Очікуйте на пропозиції від водіїв",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/client", userId] });
       setLocation("/");
     },
     onError: () => {
