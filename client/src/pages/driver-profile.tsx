@@ -30,7 +30,8 @@ export default function DriverProfile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: z.infer<typeof profileSchema>) => {
-      return await apiRequest("PATCH", `/api/users/${driverId}`, data);
+      const response = await apiRequest("PATCH", `/api/users/${driverId}`, data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${driverId}`] });

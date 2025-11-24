@@ -14,13 +14,14 @@ import {
   MessageSquare, 
   Star,
   MapPin,
-  DollarSign
+  DollarSign,
+  Phone
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/use-user";
 import { RatingDialog } from "@/components/rating-dialog";
-import type { Order } from "@shared/schema";
+import type { Order, User as UserType } from "@shared/schema";
 
 export default function ClientHome() {
   const [, setLocation] = useLocation();
@@ -233,25 +234,8 @@ export default function ClientHome() {
                           </div>
                         )}
 
-                        {order.status === "accepted" && (
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm bg-primary/10 p-3 rounded-lg">
-                              <User className="w-5 h-5 text-primary" />
-                              <div>
-                                <div className="font-medium">Водій знайдено</div>
-                                <div className="text-xs text-muted-foreground">
-                                  Очікуйте на підтвердження початку поїздки
-                                </div>
-                              </div>
-                            </div>
-                            <Button
-                              className="w-full"
-                              onClick={() => setLocation(`/chat/${order.orderId}`)}
-                            >
-                              <MessageSquare className="w-4 h-4 mr-2" />
-                              Перейти до чату
-                            </Button>
-                          </div>
+                        {order.status === "accepted" && order.driverId && (
+                          <DriverInfoSection driverId={order.driverId} orderId={order.orderId} setLocation={setLocation} />
                         )}
 
                         {order.status === "in_progress" && (
@@ -359,6 +343,53 @@ export default function ClientHome() {
         driverName={ratingDialog.driverName}
         onSuccess={handleRatingSuccess}
       />
+    </div>
+  );
+}
+
+function DriverInfoSection({ driverId, orderId, setLocation }: { driverId: string; orderId: string; setLocation: (path: string) => void }) {
+  const { data: driver, isLoading } = useQuery<UserType>({
+    queryKey: [`/api/users/${driverId}`],
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm bg-primary/10 p-3 rounded-lg">
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+        <span>Завантаження інформації про водія...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-3 bg-primary/10 p-3 rounded-lg">
+        <User className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <div className="font-medium">Водій знайдено</div>
+          {driver?.name && (
+            <div className="text-sm text-muted-foreground">
+              {driver.name}
+            </div>
+          )}
+          {driver?.phone && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <Phone className="w-4 h-4" />
+              <a href={`tel:${driver.phone}`} className="text-primary hover:underline">
+                {driver.phone}
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+      <Button
+        className="w-full"
+        onClick={() => setLocation(`/chat/${orderId}`)}
+        data-testid="button-chat"
+      >
+        <MessageSquare className="w-4 h-4 mr-2" />
+        Перейти до чату
+      </Button>
     </div>
   );
 }
