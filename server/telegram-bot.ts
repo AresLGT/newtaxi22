@@ -377,8 +377,14 @@ export function initTelegramBot(storage: IStorage) {
   });
 
   // Обробка помилок
-  bot.on('polling_error', (error) => {
-    console.error('Telegram bot polling error:', error);
+  bot.on('polling_error', (error: any) => {
+    if (error.code === 'ETELEGRAM' && error.response?.body?.error_code === 409) {
+      // Suppress 409 conflict errors (another instance is running)
+      console.log('⚠️  Telegram bot polling conflict detected. Another instance may be running. Stopping polling...');
+      bot.stopPolling();
+    } else {
+      console.error('Telegram bot polling error:', error.message);
+    }
   });
 
   return bot;
