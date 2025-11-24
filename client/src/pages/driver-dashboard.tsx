@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { MapPin, Navigation, DollarSign, User, Plus, Calculator, CheckCircle2 } from "lucide-react";
+import { MapPin, Navigation, DollarSign, User, Plus, Calculator, CheckCircle2, MessageSquare } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -43,30 +43,27 @@ export default function DriverDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [distanceDialog, setDistanceDialog] = useState(false);
   
-  // Локальний стан для миттєвого відображення активного замовлення
   const [manualActiveOrder, setManualActiveOrder] = useState<Order | null>(null);
 
-  // Защита маршруту
   useEffect(() => {
     if (role !== "driver") {
       setLocation("/");
     }
   }, [role, setLocation]);
 
-  // 1. Отримуємо загальний список активних замовлень
+  // 1. Активні замовлення (пошук)
   const { data: activeOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
     refetchInterval: 2000,
   });
 
-  // 2. Отримуємо поточне замовлення водія
+  // 2. Поточне замовлення водія
   const { data: currentOrders = [], isLoading: isLoadingCurrent } = useQuery<Order[]>({
     queryKey: [`/api/orders/driver/${driverId}/current`],
     enabled: !!driverId,
-    refetchInterval: 1000, // Перевіряємо кожну секунду
+    refetchInterval: 1000,
   });
 
-  // Визначаємо, яке замовлення показувати (пріоритет у завантаженого з сервера, або того, що ми щойно прийняли)
   const currentOrder = currentOrders[0] || manualActiveOrder;
 
   const distanceForm = useForm<z.infer<typeof distanceSchema>>({
@@ -89,10 +86,7 @@ export default function DriverDashboard() {
       return data as Order;
     },
     onSuccess: (acceptedOrder) => {
-      // 1. Миттєво оновлюємо інтерфейс, не чекаючи сервера
       setManualActiveOrder(acceptedOrder);
-      
-      // 2. Оновлюємо дані в фоні
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
       queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
       
@@ -117,12 +111,9 @@ export default function DriverDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      // Очищаємо локальне замовлення
       setManualActiveOrder(null);
-      
       queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
-      
       toast({ title: "Поїздку завершено!", description: "Можна брати нові замовлення." });
     },
     onError: () => {
@@ -200,20 +191,33 @@ export default function DriverDashboard() {
                )}
             </div>
 
-            <Button 
-              className="w-full h-16 text-lg font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 transition-all hover:scale-[1.02]"
-              onClick={() => completeOrderMutation.mutate(currentOrder.orderId)}
-              disabled={completeOrderMutation.isPending}
-            >
-              {completeOrderMutation.isPending ? (
-                "Завершення..."
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <span>ЗАВЕРШИТИ ЗАМОВЛЕННЯ</span>
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-              )}
-            </Button>
+            {/* Кнопки дій */}
+            <div className="space-y-3 pt-2">
+              <Button
+                variant="outline"
+                className="w-full h-12 text-lg border-primary text-primary hover:bg-primary/5"
+                onClick={() => setLocation(`/chat/${currentOrder.orderId}`)}
+              >
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Чат з клієнтом
+              </Button>
+
+              <Button 
+                className="w-full h-16 text-lg font-bold bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-900/20 transition-all hover:scale-[1.02]"
+                onClick={() => completeOrderMutation.mutate(currentOrder.orderId)}
+                disabled={completeOrderMutation.isPending}
+              >
+                {completeOrderMutation.isPending ? (
+                  "Завершення..."
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <span>ЗАВЕРШИТИ ЗАМОВЛЕННЯ</span>
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                )}
+              </Button>
+            </div>
+
           </CardContent>
         </Card>
       </div>

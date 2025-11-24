@@ -93,6 +93,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
+  // Маршрут для отримання ПОТОЧНОГО замовлення водія
+  app.get("/api/orders/driver/:driverId/current", async (req, res) => {
+    const order = await storage.getDriverCurrentOrder(req.params.driverId);
+    // Повертаємо масив, щоб клієнту було зручно працювати
+    res.json(order ? [order] : []);
+  });
+
   app.post("/api/orders", rateLimitMiddleware, async (req, res) => {
     try {
       const data = insertOrderSchema.parse(req.body);
@@ -108,20 +115,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[DEBUG] Attempting to accept order ${req.params.id}. Body:`, req.body);
       
       const schema = z.object({
-        // Дозволяємо ID бути або рядком, або числом (і конвертуємо в рядок)
         driverId: z.union([z.string(), z.number()]).transform((val) => String(val)),
         distanceKm: z.number().optional(),
       });
       
       const data = schema.parse(req.body);
 
-      // Якщо водія немає в базі, створюємо його "на льоту" (для уникнення помилок при першому запуску)
+      // Auto-register driver check
       let driver = await storage.getUser(data.driverId);
       if (!driver) {
-         console.log(`[DEBUG] Driver ${data.driverId} not found, auto-creating as driver role.`);
+         console.log(`[DEBUG] Driver ${data.driverId} not found, auto-creating.`);
          driver = await storage.createUser({
           id: data.driverId,
-          role: "driver", // Важливо: створюємо одразу з роллю водія
+          role: "driver",
           name: `Driver ${data.driverId}`,
           phone: null,
           telegramAvatarUrl: null,
@@ -131,19 +137,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.acceptOrder(req.params.id, data.driverId, data.distanceKm);
       if (!order) {
         console.error(`[ERROR] Order not found or cannot be accepted: ${req.params.id}`);
-        return res.status(400).json({ error: "Cannot accept order (already taken or wrong role)" });
+        return res.status(400).json({ error: "Cannot accept order" });
       }
 
       console.log(`[SUCCESS] Order ${req.params.id} accepted by driver ${data.driverId}`);
       res.json(order);
     } catch (error: any) {
       console.error("Error accepting order:", error);
-      if (error instanceof z.ZodError) {
-         console.error("Validation error details:", error.errors);
-      }
       res.status(400).json({ error: error?.message || "Invalid request" });
     }
   });
+
+  // --- ВИПРАВЛЕНИЙ МАРШРУТ ЗАВЕРШЕННЯ ---
+  app.post("/api/orders/:id/complete", async (req, res) => {
+     try {
+       console.log(`[DEBUG] Attempting to complete order ${req.params.id}`);
+       const updated = await storage.completeOrder(req.params.id);
+       
+       if (!updated) {
+         console.error(`[ERROR] Failed to complete order ${req.params.id} (not found)`);
+         return res.status(404).json({ error: "Order not found" });
+       }
+       
+       console.log(`[SUCCESS] Order ${req.params.id} completed`);
+       res.json(updated);
+     } catch (e) {
+       console.error(`[ERROR] Exception while completing order:`, e);
+       res.status(500).json({ error: "Could not complete order" });
+     }
+  });
+  // --------------------------------------
 
   app.patch("/api/orders/:id", async (req, res) => {
     try {
