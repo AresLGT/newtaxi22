@@ -15,12 +15,14 @@ import DriverProfile from "@/pages/driver-profile";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
 import ChatPage from "@/pages/chat-page";
+import PreviewPage from "@/pages/preview";
 import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={ClientHome} />
+      <Route path="/preview" component={PreviewPage} />
       <Route path="/role-selector" component={RoleSelector} />
       <Route path="/client" component={ClientHome} />
       <Route path="/order/:type" component={OrderForm} />
