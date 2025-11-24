@@ -103,10 +103,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- ВИПРАВЛЕНИЙ БЛОК ACCEPT ---
   app.post("/api/orders/:id/accept", async (req, res) => {
     try {
+      console.log(`[DEBUG] Attempting to accept order ${req.params.id}. Body:`, req.body);
+      
+      // Дозволяємо ID бути рядком АБО числом, і перетворюємо в рядок
       const schema = z.object({
-        driverId: z.string(),
+        driverId: z.union([z.string(), z.number()]).transform(String),
         distanceKm: z.number().optional(),
       });
       const data = schema.parse(req.body);
@@ -125,7 +129,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = await storage.acceptOrder(req.params.id, data.driverId, data.distanceKm);
       if (!order) {
-        return res.status(400).json({ error: "Cannot accept order" });
+        console.error(`[ERROR] Failed to accept order in storage logic`);
+        return res.status(400).json({ error: "Cannot accept order (wrong role or already taken)" });
       }
 
       res.json(order);
@@ -134,6 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error?.message || "Invalid request" });
     }
   });
+  // -------------------------------
 
   app.patch("/api/orders/:id", async (req, res) => {
     try {
@@ -162,126 +168,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ success: true });
-    } catch (error) {
-      res.status(400).json({ error: "Invalid rating data" });
-    }
-  });
-
-  // Driver rating routes
-  app.get("/api/drivers/:id/stats", async (req, res) => {
-    try {
-      const stats = await storage.getDriverStats(req.params.id);
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Cannot retrieve driver stats" });
-    }
-  });
-
-  app.get("/api/drivers/:id/badges", async (req, res) => {
-    try {
-      const badges = await storage.getDriverBadges(req.params.id);
-      res.json({ badges });
-    } catch (error) {
-      res.status(500).json({ error: "Cannot retrieve driver badges" });
-    }
-  });
-
-  // Admin routes
-  app.get("/api/admin/drivers", async (req, res) => {
-    const drivers = await storage.getAllDrivers();
-    res.json(drivers);
-  });
-
-  app.post("/api/admin/generate-code", async (req, res) => {
-    try {
-      const schema = z.object({
-        adminId: z.string(),
-      });
-      const data = schema.parse(req.body);
-
-      const code = await storage.generateAccessCode(data.adminId);
-      res.status(201).json(code);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid request" });
-    }
-  });
-
-  app.post("/api/admin/drivers/:id/block", async (req, res) => {
-    try {
-      const driver = await storage.getUser(req.params.id);
-      if (!driver || driver.role !== "driver") {
-        return res.status(404).json({ error: "Driver not found" });
-      }
-
-      const updated = await storage.updateUser(req.params.id, {
-        isBlocked: !driver.isBlocked,
-      });
-      res.json(updated);
-    } catch (error) {
-      res.status(400).json({ error: "Cannot block driver" });
-    }
-  });
-
-  app.post("/api/admin/drivers/:id/warning", async (req, res) => {
-    try {
-      const schema = z.object({
-        text: z.string(),
-      });
-      const data = schema.parse(req.body);
-
-      const driver = await storage.getUser(req.params.id);
-      if (!driver || driver.role !== "driver") {
-        return res.status(404).json({ error: "Driver not found" });
-      }
-
-      const warnings = driver.warnings || [];
-      const updated = await storage.updateUser(req.params.id, {
-        warnings: [...warnings, data.text],
-      });
-      res.json(updated);
-    } catch (error) {
-      res.status(400).json({ error: "Cannot add warning" });
-    }
-  });
-
-  app.post("/api/admin/drivers/:id/bonus", async (req, res) => {
-    try {
-      const schema = z.object({
-        text: z.string(),
-      });
-      const data = schema.parse(req.body);
-
-      const driver = await storage.getUser(req.params.id);
-      if (!driver || driver.role !== "driver") {
-        return res.status(404).json({ error: "Driver not found" });
-      }
-
-      const bonuses = driver.bonuses || [];
-      const updated = await storage.updateUser(req.params.id, {
-        bonuses: [...bonuses, data.text],
-      });
-      res.json(updated);
-    } catch (error) {
-      res.status(400).json({ error: "Cannot add bonus" });
-    }
-  });
-
-  // Chat routes
-  app.get("/api/chat/:orderId", async (req, res) => {
-    const messages = await storage.getChatMessages(req.params.orderId);
-    res.json(messages);
-  });
-
-  app.post("/api/chat", async (req, res) => {
-    try {
-      const data = insertChatMessageSchema.parse(req.body);
-      const message = await storage.sendChatMessage(data);
-      res.status(201).json(message);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid message data" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
-}

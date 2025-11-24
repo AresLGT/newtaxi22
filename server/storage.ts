@@ -208,7 +208,10 @@ export class MemStorage implements IStorage {
     if (!order || order.status !== "pending") return undefined;
 
     const driver = await this.getUser(driverId);
-    if (!driver || driver.role !== "driver" || driver.isBlocked) {
+    
+    // --- ВИПРАВЛЕНО: Дозволяємо і "driver", і "admin" приймати замовлення ---
+    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) {
+      console.log(`[Storage] Access denied for user ${driverId} with role ${driver?.role}`);
       return undefined;
     }
 
