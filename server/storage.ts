@@ -4,7 +4,7 @@ import {
   type Order,
   type InsertOrder,
   type AccessCode,
-  type InsertAccessCode,
+  type AccessCode as AccessCodeType, // Alias to avoid naming conflict if needed
   type ChatMessage,
   type InsertChatMessage,
   type Rating,
@@ -26,9 +26,13 @@ export interface IStorage {
   getActiveOrders(): Promise<Order[]>;
   getOrdersByClient(clientId: string): Promise<Order[]>;
   getOrdersByDriver(driverId: string): Promise<Order[]>;
+  // Новий метод для пошуку поточної поїздки водія
+  getDriverCurrentOrder(driverId: string): Promise<Order | undefined>;
+  
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined>;
   acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined>;
+  completeOrder(orderId: string): Promise<Order | undefined>; // Додамо явний метод завершення
 
   // Access Code methods
   generateAccessCode(issuedBy: string): Promise<AccessCode>;
@@ -132,7 +136,6 @@ export class MemStorage implements IStorage {
       return null;
     }
 
-    // Get or create user with driver role
     let user = await this.getUser(userId);
     if (!user) {
       user = await this.createUser({
@@ -143,7 +146,6 @@ export class MemStorage implements IStorage {
         telegramAvatarUrl: null,
       });
     } else {
-      // Update existing user to driver role
       user = await this.updateUser(userId, {
         role: "driver",
         name,
@@ -181,6 +183,17 @@ export class MemStorage implements IStorage {
     return Array.from(this.orders.values()).filter((order) => order.driverId === driverId);
   }
 
+  // --- НОВИЙ МЕТОД ---
+  async getDriverCurrentOrder(driverId: string): Promise<Order | undefined> {
+    // Шукаємо замовлення цього водія, яке "accepted" (в процесі) або "arrived" (прибув), але не completed
+    return Array.from(this.orders.values()).find(
+      (order) => 
+        order.driverId === driverId && 
+        (order.status === "accepted" || order.status === "arrived" || order.status === "in_progress")
+    );
+  }
+  // -------------------
+
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderId = randomUUID();
     const order: Order = {
@@ -208,10 +221,7 @@ export class MemStorage implements IStorage {
     if (!order || order.status !== "pending") return undefined;
 
     const driver = await this.getUser(driverId);
-    
-    // --- ВИПРАВЛЕНО: Дозволяємо і "driver", і "admin" приймати замовлення ---
     if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) {
-      console.log(`[Storage] Access denied for user ${driverId} with role ${driver?.role}`);
       return undefined;
     }
 
@@ -220,6 +230,18 @@ export class MemStorage implements IStorage {
       driverId,
       status: "accepted",
       distanceKm: distanceKm ?? order.distanceKm,
+    };
+    this.orders.set(orderId, updatedOrder);
+    return updatedOrder;
+  }
+
+  async completeOrder(orderId: string): Promise<Order | undefined> {
+    const order = this.orders.get(orderId);
+    if (!order) return undefined;
+    
+    const updatedOrder: Order = {
+      ...order,
+      status: "completed"
     };
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
@@ -295,7 +317,6 @@ export class MemStorage implements IStorage {
       return false;
     }
 
-    // Перевірка чи замовлення вже оцінено
     const existingRating = Array.from(this.ratings.values()).find(
       (rating) => rating.orderId === orderId
     );
