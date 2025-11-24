@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,11 +27,15 @@ export default function ClientHome() {
   const [, setLocation] = useLocation();
   const { userId } = useUser();
   const queryClient = useQueryClient();
+  
   const [ratingDialog, setRatingDialog] = useState<{
     open: boolean;
     orderId: string;
     driverName?: string;
   }>({ open: false, orderId: "" });
+
+  // Зберігаємо попередні статуси замовлень, щоб виявити зміни
+  const prevOrdersRef = useRef<Record<string, string>>({});
 
   const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/client", userId],
@@ -41,8 +45,28 @@ export default function ClientHome() {
       return res.json();
     },
     enabled: !!userId,
-    refetchInterval: 3000, // Оновлювати кожні 3 секунди
+    refetchInterval: 3000, 
   });
+
+  // АВТОМАТИЧНЕ ВІДКРИТТЯ ОЦІНКИ
+  useEffect(() => {
+    orders.forEach(order => {
+      const prevStatus = prevOrdersRef.current[order.orderId];
+      
+      // Якщо замовлення перейшло в статус "completed" прямо зараз
+      if (prevStatus && prevStatus !== "completed" && order.status === "completed") {
+        // Відкриваємо діалог оцінки
+        setRatingDialog({
+          open: true,
+          orderId: order.orderId,
+          driverName: "Водія" // Можна додати ім'я, якщо воно є в об'єкті
+        });
+      }
+      
+      // Оновлюємо збережений статус
+      prevOrdersRef.current[order.orderId] = order.status;
+    });
+  }, [orders]);
 
   const orderTypes = [
     {
@@ -106,7 +130,6 @@ export default function ClientHome() {
     queryClient.invalidateQueries({ queryKey: ["/api/orders/client", userId] });
   };
 
-  // Фільтруємо замовлення
   const activeOrders = orders.filter(o => 
     o.status === "pending" || o.status === "accepted" || o.status === "in_progress"
   );
@@ -114,6 +137,11 @@ export default function ClientHome() {
   const completedOrders = orders.filter(o => 
     o.status === "completed" || o.status === "cancelled"
   );
+
+  // Сортуємо завершені замовлення: найновіші зверху
+  completedOrders.sort((a, b) => {
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -224,7 +252,6 @@ export default function ClientHome() {
 
                         <Separator />
 
-                        {/* Status-specific UI */}
                         {order.status === "pending" && (
                           <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg animate-pulse">
                             <Clock className="w-5 h-5" />
@@ -267,7 +294,10 @@ export default function ClientHome() {
                               <div className="text-xs text-muted-foreground">
                                 {new Date(order.createdAt!).toLocaleString('uk-UA', {
                                   day: '2-digit',
-                                  month: '2-digit'
+                                  month: '2-digit',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
                                 })}
                               </div>
                             </div>
@@ -277,7 +307,7 @@ export default function ClientHome() {
 
                         <div className="flex items-center justify-between text-sm">
                           <div className="text-muted-foreground truncate max-w-[150px]">
-                            {order.to}
+                            {order.from} → {order.to}
                           </div>
                           {order.price && (
                             <div className="font-semibold">{order.price} грн</div>
@@ -351,7 +381,6 @@ function DriverInfoSection({
     );
   }
 
-  // Функція для очищення номера телефону від зайвих символів
   const getCleanPhone = (phone: string) => {
     return phone.replace(/[^\d+]/g, '');
   };

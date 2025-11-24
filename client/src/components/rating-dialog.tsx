@@ -1,16 +1,12 @@
 import { useState } from "react";
-import { Star } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Star, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface RatingDialogProps {
   open: boolean;
@@ -20,117 +16,115 @@ interface RatingDialogProps {
   onSuccess?: () => void;
 }
 
-export function RatingDialog({
-  open,
-  onOpenChange,
-  orderId,
-  driverName = "водія",
-  onSuccess,
-}: RatingDialogProps) {
-  const [stars, setStars] = useState(5);
-  const [hoveredStars, setHoveredStars] = useState(0);
+const RATING_LABELS = {
+  1: "Погано 😡",
+  2: "Так собі 😒",
+  3: "Нормально 😐",
+  4: "Добре 🙂",
+  5: "Неймовірно 🤩",
+};
+
+export function RatingDialog({ open, onOpenChange, orderId, driverName, onSuccess }: RatingDialogProps) {
+  const { toast } = useToast();
+  const [stars, setStars] = useState(0);
+  const [hoveredStar, setHoveredStar] = useState(0);
   const [comment, setComment] = useState("");
 
-  const ratingMutation = useMutation({
-    mutationFn: async (data: { stars: number; comment?: string }) => {
-      const response = await fetch(`/api/orders/${orderId}/rate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+  const rateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/orders/${orderId}/rate`, {
+        stars,
+        comment,
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit rating");
-      }
-
-      return response.json();
+      if (!res.ok) throw new Error("Failed to rate");
+      return res.json();
     },
     onSuccess: () => {
-      onSuccess?.();
+      toast({
+        title: "Дякуємо за оцінку!",
+        description: "Ваш відгук допомагає нам ставати кращими.",
+      });
       onOpenChange(false);
-      setStars(5);
-      setComment("");
+      onSuccess?.();
+      // Скидаємо форму після закриття (з невеликою затримкою)
+      setTimeout(() => {
+        setStars(0);
+        setComment("");
+      }, 500);
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося відправити оцінку. Спробуйте пізніше.",
+        variant: "destructive",
+      });
     },
   });
 
-  const handleSubmit = () => {
-    ratingMutation.mutate({
-      stars,
-      comment: comment.trim() || undefined,
-    });
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Оцініть водія</DialogTitle>
-          <DialogDescription>
-            Як вам сподобалась поїздка з {driverName}?
+          <DialogTitle className="text-center text-xl">Як пройшла поїздка?</DialogTitle>
+          <DialogDescription className="text-center">
+            {driverName ? `Оцініть роботу водія ${driverName}` : "Оцініть вашу останню поїздку"}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
+        <div className="flex flex-col items-center gap-6 py-4">
+          {/* Зірки */}
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((value) => (
               <button
-                key={star}
+                key={value}
                 type="button"
-                onClick={() => setStars(star)}
-                onMouseEnter={() => setHoveredStars(star)}
-                onMouseLeave={() => setHoveredStars(0)}
-                className="transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+                className="transition-transform hover:scale-110 focus:outline-none"
+                onMouseEnter={() => setHoveredStar(value)}
+                onMouseLeave={() => setHoveredStar(0)}
+                onClick={() => setStars(value)}
               >
                 <Star
-                  className={`w-10 h-10 ${
-                    star <= (hoveredStars || stars)
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-300"
-                  }`}
+                  className={cn(
+                    "w-10 h-10 transition-all duration-200",
+                    (hoveredStar ? value <= hoveredStar : value <= stars)
+                      ? "fill-yellow-400 text-yellow-400 drop-shadow-md"
+                      : "text-muted-foreground/30"
+                  )}
                 />
               </button>
             ))}
           </div>
 
-          <div className="text-center text-sm text-muted-foreground">
-            {stars === 1 && "Погано"}
-            {stars === 2 && "Незадовільно"}
-            {stars === 3 && "Нормально"}
-            {stars === 4 && "Добре"}
-            {stars === 5 && "Відмінно"}
+          {/* Підпис оцінки */}
+          <div className="h-6 font-medium text-lg text-primary animate-in fade-in">
+            {(hoveredStar || stars) > 0 && 
+              RATING_LABELS[(hoveredStar || stars) as keyof typeof RATING_LABELS]}
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="comment" className="text-sm font-medium">
-              Коментар (опціонально)
-            </label>
-            <Textarea
-              id="comment"
-              placeholder="Розкажіть про ваш досвід..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              maxLength={500}
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {comment.length}/500
-            </p>
-          </div>
+          {/* Коментар */}
+          <Textarea
+            placeholder="Напишіть коментар (необов'язково)..."
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            className="resize-none"
+          />
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={ratingMutation.isPending}
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button 
+            className="w-full font-bold text-lg h-12" 
+            onClick={() => rateMutation.mutate()}
+            disabled={stars === 0 || rateMutation.isPending}
           >
-            Скасувати
+            {rateMutation.isPending ? "Відправка..." : "Оцінити"}
           </Button>
+          
           <Button
-            onClick={handleSubmit}
-            disabled={ratingMutation.isPending}
+            variant="ghost"
+            className="w-full sm:hidden text-muted-foreground"
+            onClick={() => onOpenChange(false)}
           >
-            {ratingMutation.isPending ? "Відправка..." : "Відправити оцінку"}
+            Закрити
           </Button>
         </DialogFooter>
       </DialogContent>
