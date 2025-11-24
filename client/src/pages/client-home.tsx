@@ -40,6 +40,7 @@ export default function ClientHome() {
       return res.json();
     },
     enabled: !!userId,
+    refetchInterval: 3000, // Оновлювати кожні 3 секунди
   });
 
   const orderTypes = [
