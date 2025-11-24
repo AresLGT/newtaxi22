@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { MapPin, Navigation, DollarSign, User, Plus, ArrowLeft, Calculator, CheckCircle2 } from "lucide-react";
+import { MapPin, Navigation, DollarSign, User, Plus, Calculator, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -50,20 +50,20 @@ export default function DriverDashboard() {
     }
   }, [role, setLocation]);
 
-  // 1. Отримуємо загальний список активних замовлень (для вибору)
+  // 1. Отримуємо загальний список активних замовлень
   const { data: activeOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
     refetchInterval: 3000,
   });
 
-  // 2. Отримуємо поточне замовлення водія (якщо він вже взяв когось)
+  // 2. Отримуємо поточне замовлення водія
   const { data: currentOrders = [], isLoading: isLoadingCurrent } = useQuery<Order[]>({
     queryKey: [`/api/orders/driver/${driverId}/current`],
-    enabled: !!driverId, // Запит йде тільки якщо є ID водія
+    enabled: !!driverId,
     refetchInterval: 2000,
   });
 
-  const currentOrder = currentOrders[0]; // Беремо перше (і єдине) активне
+  const currentOrder = currentOrders[0];
 
   const distanceForm = useForm<z.infer<typeof distanceSchema>>({
     resolver: zodResolver(distanceSchema),
@@ -72,7 +72,6 @@ export default function DriverDashboard() {
     },
   });
 
-  // Мутація: Прийняти замовлення
   const acceptOrderMutation = useMutation({
     mutationFn: async ({ orderId, distanceKm }: { orderId: string; distanceKm?: number }) => {
       if (!driverId) throw new Error("Driver ID not available");
@@ -86,7 +85,6 @@ export default function DriverDashboard() {
       return data;
     },
     onSuccess: () => {
-      // Оновлюємо обидва списки: активні (щоб зникло) і поточні (щоб з'явилося)
       queryClient.invalidateQueries({ queryKey: ["/api/orders/active"] });
       queryClient.invalidateQueries({ queryKey: [`/api/orders/driver/${driverId}/current`] });
       
@@ -104,7 +102,6 @@ export default function DriverDashboard() {
     },
   });
 
-  // Мутація: Завершити замовлення
   const completeOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const response = await apiRequest("POST", `/api/orders/${orderId}/complete`);
@@ -155,8 +152,6 @@ export default function DriverDashboard() {
             <CardTitle className="text-xl">Поточне замовлення</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
-            
-            {/* Маршрут */}
             <div className="space-y-4">
               <div className="flex gap-3">
                 <div className="flex flex-col items-center">
@@ -204,19 +199,13 @@ export default function DriverDashboard() {
     );
   }
 
-  // --- ВІДОБРАЖЕННЯ: СПИСОК ЗАМОВЛЕНЬ ---
+  // --- ВІДОБРАЖЕННЯ: СПИСОК ---
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
         <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation("/")}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            {/* Кнопка "Назад" видалена */}
             <div className="flex-1">
               <h1 className="text-lg font-semibold">Активні замовлення</h1>
               <p className="text-xs text-muted-foreground">Виберіть замовлення для роботи</p>
@@ -225,8 +214,9 @@ export default function DriverDashboard() {
               variant="ghost"
               size="icon"
               onClick={() => setLocation("/driver/profile")}
+              data-testid="button-profile"
             >
-              <User className="w-5 h-5" />
+              <User className="w-6 h-6" />
             </Button>
           </div>
         </div>
@@ -237,6 +227,7 @@ export default function DriverDashboard() {
           className="w-full"
           variant="outline"
           onClick={() => setLocation("/")}
+          data-testid="button-create-order-as-client"
         >
           <Plus className="w-4 h-4 mr-2" />
           Створити замовлення (як клієнт)
@@ -313,7 +304,6 @@ export default function DriverDashboard() {
         )}
       </div>
 
-      {/* Діалог підтвердження дистанції */}
       <Dialog open={distanceDialog} onOpenChange={setDistanceDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
