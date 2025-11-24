@@ -40,18 +40,18 @@ export default function AdminDashboard() {
   const generateCodeMutation = useMutation({
     mutationFn: async (): Promise<AccessCode> => {
       const response = await apiRequest("POST", "/api/admin/generate-code", { adminId });
-      console.log("📋 Code response:", response);
-      return response;
+      const code = await response.json();
+      console.log("📋 Code response:", code);
+      return code;
     },
     onSuccess: (code: AccessCode) => {
       console.log("✅ Code generated:", code);
-      const codeValue = code.code || (code as any).code;
-      setGeneratedCode(codeValue);
+      setGeneratedCode(code.code);
       setShowCodeDialog(true);
       setCopied(false);
       toast({
         title: "Код згенеровано",
-        description: `Код доступу: ${codeValue}`,
+        description: `Код доступу: ${code.code}`,
       });
     },
     onError: (error) => {
