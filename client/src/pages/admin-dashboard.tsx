@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import type { User, Order, AccessCode, Rating } from "@shared/schema";
 type AdminView = "menu" | "overview" | "dispatcher" | "drivers" | "finance" | "tariffs" | "reviews" | "broadcast";
 
 export default function AdminDashboard() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [currentView, setCurrentView] = useState<AdminView>("menu");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -35,7 +37,7 @@ export default function AdminDashboard() {
     },
     onSuccess: (data: AccessCode) => {
       setGeneratedCode(data.code);
-      toast({ title: "Код: " + data.code });
+      toast({ title: "Код згенеровано", description: data.code });
     },
   });
 
@@ -92,21 +94,36 @@ export default function AdminDashboard() {
     { id: "reviews", title: "Відгуки", desc: "Оцінки клієнтів", icon: Star, color: "text-purple-500", bg: "bg-purple-500/10" },
     { id: "broadcast", title: "Розсилка", desc: "Повідомлення всім", icon: Megaphone, color: "text-blue-500", bg: "bg-blue-500/10" },
     { id: "drivers", title: "Водії", desc: "Керування штатом", icon: Users, color: "text-cyan-500", bg: "bg-cyan-500/10" },
-    { id: "overview", title: "Генерація кодів", desc: "Доступ для нових", icon: Settings, color: "text-slate-500", bg: "bg-slate-500/10" }
+    { id: "settings", title: "Генерація кодів", desc: "Доступ для нових", icon: Settings, color: "text-slate-500", bg: "bg-slate-500/10" }
   ];
 
   return (
     <div className="min-h-screen bg-background">
+      
+      {/* ШАПКА */}
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
-          {currentView !== "menu" && (
-            <Button variant="ghost" size="icon" onClick={() => setCurrentView("menu")}>
-              <ArrowLeft className="w-6 h-6" />
-            </Button>
-          )}
-          <h1 className="text-lg font-bold">
-            {currentView === "menu" ? "Адмін Панель" : menuItems.find(i => i.id === currentView)?.title}
-          </h1>
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            {currentView !== "menu" && (
+              <Button variant="ghost" size="icon" onClick={() => setCurrentView("menu")}>
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+            )}
+            <h1 className="text-lg font-bold">
+              {currentView === "menu" ? "Адмін Панель" : menuItems.find(i => i.id === currentView)?.title}
+            </h1>
+          </div>
+          
+          {/* Кнопка переходу в режим водія для адміна */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+            onClick={() => setLocation("/driver")}
+          >
+            <Car className="w-4 h-4 mr-2" />
+            Таксувати
+          </Button>
         </div>
       </div>
 
@@ -119,6 +136,10 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">Оборот сервісу:</div>
                 <div className="text-2xl font-bold text-primary">{totalRevenue} ₴</div>
+              </div>
+              <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
+                <div>Активних: <span className="font-bold text-blue-500">{activeOrders.length}</span></div>
+                <div>Водіїв: <span className="font-bold text-foreground">{drivers.length}</span></div>
               </div>
             </div>
 
@@ -183,10 +204,12 @@ export default function AdminDashboard() {
                 <CardContent className="p-4 space-y-2">
                   <div className="flex justify-between"><Badge variant="outline">#{order.orderId.slice(0,6)}</Badge><Badge>{order.status}</Badge></div>
                   
-                  {/* ВИПРАВЛЕНИЙ РЯДОК НИЖЧЕ */}
+                  {/* ВИПРАВЛЕНИЙ РЯДОК: */}
                   <div className="text-sm flex items-center gap-2">
                     {order.from} <span className="text-muted-foreground">→</span> {order.to}
                   </div>
+
+                  <div className="text-xs text-muted-foreground">ID: {order.orderId} | Driver: {order.driverId || "-"}</div>
 
                   {(order.status === 'pending' || order.status === 'accepted') && (
                     <Button variant="destructive" size="sm" className="w-full" onClick={() => cancelOrderMutation.mutate(order.orderId)}>Скасувати</Button>
@@ -224,16 +247,24 @@ export default function AdminDashboard() {
         )}
 
         {/* ВОДІЇ ТА ГЕНЕРАЦІЯ */}
-        {(currentView === "drivers" || currentView === "overview") && (
+        {(currentView === "settings" || currentView === "drivers") && (
           <div className="space-y-4">
-             {currentView === "overview" && (
-               <Button onClick={() => generateCodeMutation.mutate()} className="w-full h-12"><RefreshCw className="mr-2 h-4 w-4" /> Згенерувати код</Button>
+             {currentView === "settings" && (
+               <Card>
+                 <CardHeader><CardTitle>Генерація кодів</CardTitle></CardHeader>
+                 <CardContent>
+                   <Button onClick={() => generateCodeMutation.mutate()} className="w-full h-12"><RefreshCw className="mr-2 h-4 w-4" /> Згенерувати код</Button>
+                   {generatedCode && <div className="mt-4 p-4 bg-muted rounded text-center font-mono text-2xl font-bold select-all">{generatedCode}</div>}
+                 </CardContent>
+               </Card>
              )}
-             {generatedCode && <div className="p-4 bg-muted rounded text-center font-mono text-2xl font-bold">{generatedCode}</div>}
              
              {currentView === "drivers" && drivers.map((d) => (
-               <div key={d.id} className="flex justify-between p-4 border rounded bg-card">
-                 <span>{d.name}</span>
+               <div key={d.id} className="flex justify-between p-4 border rounded bg-card items-center">
+                 <div>
+                   <div className="font-bold">{d.name}</div>
+                   <div className="text-xs text-muted-foreground">{d.phone}</div>
+                 </div>
                  <Button size="sm" variant={d.isBlocked ? "destructive" : "secondary"} onClick={() => blockDriverMutation.mutate(d.id)}>{d.isBlocked ? "Розблокувати" : "Блок"}</Button>
                </div>
              ))}

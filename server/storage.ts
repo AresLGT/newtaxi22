@@ -117,11 +117,13 @@ export class MemStorage implements IStorage {
 
   // --- Users ---
   async getUser(id: string): Promise<User | undefined> { return this.users.get(id); }
+  
   async createUser(insertUser: InsertUser): Promise<User> {
     const user: User = { ...insertUser, isBlocked: false, warnings: [], bonuses: [], balance: 0 };
     this.users.set(user.id, user);
     return user;
   }
+
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
@@ -129,6 +131,7 @@ export class MemStorage implements IStorage {
     this.users.set(id, updatedUser);
     return updatedUser;
   }
+
   async updateBalance(userId: string, amount: number): Promise<User | undefined> {
     const user = this.users.get(userId);
     if (!user) return undefined;
@@ -137,7 +140,15 @@ export class MemStorage implements IStorage {
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
-  async getAllDrivers(): Promise<User[]> { return Array.from(this.users.values()).filter((user) => user.role === "driver"); }
+
+  // --- ВИПРАВЛЕНО: Повертаємо і водіїв, і адмінів ---
+  async getAllDrivers(): Promise<User[]> {
+    return Array.from(this.users.values()).filter(
+      (user) => user.role === "driver" || user.role === "admin"
+    );
+  }
+  // --------------------------------------------------
+
   async getAllUsers(): Promise<User[]> { return Array.from(this.users.values()); }
   
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null> {
@@ -198,11 +209,16 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
+  // --- ВИПРАВЛЕНО: Дозволяємо і адмінам приймати замовлення ---
   async acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order || order.status !== "pending") return undefined;
+
     const driver = await this.getUser(driverId);
-    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) return undefined;
+    // Дозволяємо role="driver" АБО role="admin"
+    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) {
+      return undefined;
+    }
     
     let finalPrice = order.price;
     if (distanceKm) {
@@ -218,6 +234,7 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
+  // -----------------------------------------------------------
 
   async releaseOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
@@ -235,7 +252,7 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- РЕАЛІЗАЦІЯ НОВИХ МЕТОДІВ ДЛЯ ПОВІДОМЛЕНЬ ---
+  // --- Notifications Storage ---
   async addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void> {
     const notifications = this.orderNotifications.get(orderId) || [];
     notifications.push({ chatId, messageId });
@@ -245,7 +262,6 @@ export class MemStorage implements IStorage {
   async getOrderNotifications(orderId: string): Promise<NotificationRecord[]> {
     return this.orderNotifications.get(orderId) || [];
   }
-  // ------------------------------------------------
 
   // Access Code & Chat
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
@@ -286,7 +302,9 @@ export class MemStorage implements IStorage {
   }
   async getAllRatings(): Promise<Rating[]> { return Array.from(this.ratings.values()); }
   async getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}> {
-    const completedOrders = Array.from(this.orders.values()).filter((order) => order.driverId === driverId && order.status === "completed");
+    const completedOrders = Array.from(this.orders.values()).filter(
+      (order) => order.driverId === driverId && order.status === "completed"
+    );
     const driverRatings = Array.from(this.ratings.values()).filter((rating) => rating.driverId === driverId);
     const totalRatings = driverRatings.length;
     const averageRating = totalRatings > 0 ? driverRatings.reduce((sum, r) => sum + r.stars, 0) / totalRatings : 0;
@@ -298,8 +316,6 @@ export class MemStorage implements IStorage {
     if (stats.averageRating >= 4.8) badges.push('⭐ Топ-водій');
     if (stats.completedOrders >= 100) badges.push('🏆 Легенда');
     if (stats.completedOrders >= 50) badges.push('🔥 Активний');
-    if (stats.completedOrders >= 20 && stats.averageRating >= 4.5) badges.push('💎 Преміум');
-    if (stats.totalRatings >= 50 && stats.averageRating === 5.0) badges.push('⚡ Ідеальний');
     return badges.length > 0 ? badges.join(' ') : null;
   }
 
