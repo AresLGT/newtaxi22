@@ -79,6 +79,11 @@ export default function AdminDashboard() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/admin/orders/all"] }); }
   });
 
+  // --- СТАТИСТИКА ---
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'accepted' || o.status === 'in_progress');
+  const completedOrders = orders.filter(o => o.status === 'completed');
+  const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.price || 0), 0);
+
   // --- МЕНЮ ---
   const menuItems = [
     { id: "dispatcher", title: "Диспетчерська", desc: "Активні замовлення", icon: Car, color: "text-orange-500", bg: "bg-orange-500/10" },
@@ -110,6 +115,13 @@ export default function AdminDashboard() {
         {/* ГОЛОВНЕ МЕНЮ */}
         {currentView === "menu" && (
           <div className="grid gap-3">
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg mb-2">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">Оборот сервісу:</div>
+                <div className="text-2xl font-bold text-primary">{totalRevenue} ₴</div>
+              </div>
+            </div>
+
             {menuItems.map((item) => (
               <Card key={item.id} className="cursor-pointer hover:bg-accent/50 transition-all border-primary/20" onClick={() => setCurrentView(item.id as AdminView)}>
                 <CardContent className="flex items-center gap-4 p-4">
@@ -170,7 +182,12 @@ export default function AdminDashboard() {
                 <div className={`h-1 w-full ${order.status === 'pending' ? 'bg-yellow-500' : order.status === 'completed' ? 'bg-gray-500' : 'bg-green-500'}`} />
                 <CardContent className="p-4 space-y-2">
                   <div className="flex justify-between"><Badge variant="outline">#{order.orderId.slice(0,6)}</Badge><Badge>{order.status}</Badge></div>
-                  <div className="text-sm">{order.from} -> {order.to}</div>
+                  
+                  {/* ВИПРАВЛЕНИЙ РЯДОК НИЖЧЕ */}
+                  <div className="text-sm flex items-center gap-2">
+                    {order.from} <span className="text-muted-foreground">→</span> {order.to}
+                  </div>
+
                   {(order.status === 'pending' || order.status === 'accepted') && (
                     <Button variant="destructive" size="sm" className="w-full" onClick={() => cancelOrderMutation.mutate(order.orderId)}>Скасувати</Button>
                   )}
@@ -206,7 +223,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ВОДІЇ ТА ГЕНЕРАЦІЯ (Спрощено для прикладу) */}
+        {/* ВОДІЇ ТА ГЕНЕРАЦІЯ */}
         {(currentView === "drivers" || currentView === "overview") && (
           <div className="space-y-4">
              {currentView === "overview" && (
