@@ -50,29 +50,28 @@ function AppWrapper() {
   useEffect(() => {
     if (!isLoading && user) {
       
-      // --- 1. ПРАВИЛА ДЛЯ АДМІНА ---
+      // --- 1. ЛОГІКА ДЛЯ АДМІНА (ВИПРАВЛЕНО) ---
       if (role === "admin") {
-        // Якщо адмін просто відкрив додаток (корінь) -> відправляємо в панель
+        // Якщо адмін зайшов на стартову сторінку або вибір ролі -> в Адмінку
         if (location === "/" || location === "/role-selector") {
           setLocation("/admin");
         }
-        // ВАЖЛИВО: Якщо адмін пішов у /driver або /client - ми йому НЕ ЗАВАЖАЄМО
-        return; 
+        // ВАЖЛИВО: Якщо адмін перейшов на /driver або /client, ми нічого не робимо (дозволяємо це)
+        return;
       }
 
-      // --- 2. ПРАВИЛА ДЛЯ КЛІЄНТА ---
-      // Якщо клієнт без телефону -> на реєстрацію
+      // --- 2. ЛОГІКА ДЛЯ КЛІЄНТА ---
+      // Якщо немає телефону -> на реєстрацію
       if (role === "client" && !user.phone && location !== "/client-register" && location !== "/role-selector") {
         setLocation("/client-register");
         return;
       }
-      
-      // Якщо клієнт з телефоном зайшов на старт -> в кабінет
+      // Якщо телефон є і клієнт на старті -> в кабінет
       if (role === "client" && (location === "/" || location === "/role-selector") && user.phone) {
         setLocation("/client");
       }
 
-      // --- 3. ПРАВИЛА ДЛЯ ВОДІЯ ---
+      // --- 3. ЛОГІКА ДЛЯ ВОДІЯ ---
       if (role === "driver" && location === "/role-selector") {
         setLocation("/driver");
       }
