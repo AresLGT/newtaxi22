@@ -21,17 +21,34 @@ interface NotificationRecord {
   messageId: number;
 }
 
+// НОВЕ: Інтерфейс для тікетів підтримки
+export interface SupportTicket {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  message: string;
+  status: 'open' | 'closed';
+  createdAt: Date;
+}
+
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllDrivers(): Promise<User[]>;
+  getAllClients(): Promise<User[]>; // <--- НОВЕ
   getAllUsers(): Promise<User[]>;
   registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null>;
   
   // Finance
   updateBalance(userId: string, amount: number): Promise<User | undefined>;
+
+  // Support (НОВЕ)
+  createSupportTicket(userId: string, message: string): Promise<SupportTicket>;
+  getSupportTickets(): Promise<SupportTicket[]>;
+  resolveSupportTicket(id: string): Promise<void>;
 
   // Order methods
   getOrder(orderId: string): Promise<Order | undefined>;
@@ -83,6 +100,7 @@ export class MemStorage implements IStorage {
   private rateLimits: Map<string, number[]>;
   private tariffs: Map<string, Tariff>;
   private orderNotifications: Map<string, NotificationRecord[]>;
+  private supportTickets: Map<string, SupportTicket>; // НОВЕ
 
   constructor() {
     this.users = new Map();
@@ -93,26 +111,17 @@ export class MemStorage implements IStorage {
     this.rateLimits = new Map();
     this.tariffs = new Map();
     this.orderNotifications = new Map();
+    this.supportTickets = new Map(); // НОВЕ
 
-    // Тарифи за замовчуванням
     this.tariffs.set("taxi", { type: "taxi", basePrice: 100, perKm: 25 });
     this.tariffs.set("cargo", { type: "cargo", basePrice: 300, perKm: 40 });
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
     this.tariffs.set("towing", { type: "towing", basePrice: 500, perKm: 50 });
 
-    // --- ТУТ ТІЛЬКИ ВИ (АДМІН) ---
     this.users.set("7677921905", {
-      id: "7677921905", 
-      role: "admin", 
-      name: "Адміністратор", 
-      phone: null,
-      telegramAvatarUrl: null, 
-      isBlocked: false, 
-      warnings: [], 
-      bonuses: [], 
-      balance: 0
+      id: "7677921905", role: "admin", name: "Адміністратор", phone: null,
+      telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
     });
-    // Більше ніяких admin1 тут немає
   }
 
   // --- Users ---
@@ -137,11 +146,11 @@ export class MemStorage implements IStorage {
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
-  // Повертаємо і водіїв, і адмінів (щоб ви теж отримували замовлення)
   async getAllDrivers(): Promise<User[]> {
-    return Array.from(this.users.values()).filter(
-      (user) => user.role === "driver" || user.role === "admin"
-    );
+    return Array.from(this.users.values()).filter((user) => user.role === "driver" || user.role === "admin");
+  }
+  async getAllClients(): Promise<User[]> { // НОВЕ: Повертаємо тільки клієнтів
+    return Array.from(this.users.values()).filter((user) => user.role === "client");
   }
   async getAllUsers(): Promise<User[]> { return Array.from(this.users.values()); }
   
@@ -156,6 +165,32 @@ export class MemStorage implements IStorage {
     }
     if (user) await this.markCodeAsUsed(code, userId);
     return user ?? null;
+  }
+
+  // --- Support Tickets (НОВЕ) ---
+  async createSupportTicket(userId: string, message: string): Promise<SupportTicket> {
+    const user = this.users.get(userId);
+    const id = randomUUID();
+    const ticket: SupportTicket = {
+      id,
+      userId,
+      userName: user?.name || "Гість",
+      userPhone: user?.phone || "-",
+      message,
+      status: "open",
+      createdAt: new Date()
+    };
+    this.supportTickets.set(id, ticket);
+    return ticket;
+  }
+  async getSupportTickets(): Promise<SupportTicket[]> {
+    return Array.from(this.supportTickets.values()).filter(t => t.status === 'open').sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+  async resolveSupportTicket(id: string): Promise<void> {
+    const ticket = this.supportTickets.get(id);
+    if (ticket) {
+      this.supportTickets.set(id, { ...ticket, status: 'closed' });
+    }
   }
 
   // --- Tariffs ---
@@ -182,7 +217,6 @@ export class MemStorage implements IStorage {
       (order.status === "accepted" || order.status === "arrived" || order.status === "in_progress")
     );
   }
-  
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderId = randomUUID();
     let price = insertOrder.price;
@@ -194,7 +228,6 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, order);
     return order;
   }
-
   async updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
@@ -202,20 +235,16 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
-
   async acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order || order.status !== "pending") return undefined;
     const driver = await this.getUser(driverId);
-    // Дозволяємо адміну брати замовлення
     if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) return undefined;
-    
     let finalPrice = order.price;
     if (distanceKm) {
        const tariff = this.tariffs.get(order.type);
        if (tariff) finalPrice = tariff.basePrice + Math.ceil(distanceKm * tariff.perKm);
     }
-
     const updatedOrder: Order = {
       ...order, driverId, status: "accepted", 
       distanceKm: distanceKm ?? order.distanceKm,
@@ -224,7 +253,6 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
-
   async releaseOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
@@ -232,7 +260,6 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
-
   async completeOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
@@ -241,13 +268,12 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- Notifications ---
+  // Notifications
   async addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void> {
     const notifications = this.orderNotifications.get(orderId) || [];
     notifications.push({ chatId, messageId });
     this.orderNotifications.set(orderId, notifications);
   }
-
   async getOrderNotifications(orderId: string): Promise<NotificationRecord[]> {
     return this.orderNotifications.get(orderId) || [];
   }

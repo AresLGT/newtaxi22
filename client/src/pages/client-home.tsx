@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { 
-  Car, Truck, Package, Unplug, Clock, User, MessageSquare, Star, MapPin, DollarSign, Phone, XCircle, Shield
+  Car, Truck, Package, Unplug, Clock, User, MessageSquare, Star, MapPin, DollarSign, Phone, XCircle, Shield, MessageCircle
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -15,9 +17,12 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Order, User as UserType } from "@shared/schema";
 
+// ВАШ ID АДМІНА (щоб бачити кнопку навіть у режимі клієнта)
+const ADMIN_ID = "7677921905";
+
 export default function ClientHome() {
   const [, setLocation] = useLocation();
-  const { userId } = useUser();
+  const { userId, role } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -26,6 +31,10 @@ export default function ClientHome() {
     orderId: string;
     driverName?: string;
   }>({ open: false, orderId: "" });
+
+  // Стан для підтримки
+  const [supportOpen, setSupportOpen] = useState(false);
+  const [supportMsg, setSupportMsg] = useState("");
 
   const prevOrdersRef = useRef<Record<string, string>>({});
 
@@ -40,6 +49,7 @@ export default function ClientHome() {
     refetchInterval: 3000, 
   });
 
+  // Мутація: Скасувати замовлення
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const response = await apiRequest("POST", `/api/orders/${orderId}/cancel`);
@@ -51,6 +61,22 @@ export default function ClientHome() {
     },
   });
 
+  // Мутація: Надіслати в підтримку
+  const sendSupportMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/support", { userId, message: supportMsg });
+    },
+    onSuccess: () => {
+      setSupportOpen(false);
+      setSupportMsg("");
+      toast({ title: "Повідомлення надіслано", description: "Ми відповімо вам найближчим часом." });
+    },
+    onError: () => {
+      toast({ title: "Помилка", variant: "destructive" });
+    }
+  });
+
+  // Відкриття діалогу оцінки при завершенні
   useEffect(() => {
     orders.forEach(order => {
       const prevStatus = prevOrdersRef.current[order.orderId];
@@ -96,7 +122,7 @@ export default function ClientHome() {
   completedOrders.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-8">
       
       {/* ШАПКА */}
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
@@ -104,17 +130,12 @@ export default function ClientHome() {
           <div><h1 className="font-bold text-lg">UniWay</h1><p className="text-xs text-muted-foreground">Ваше комфортне таксі</p></div>
           
           <div className="flex gap-2">
-            
-            {/* КНОПКА АДМІНА (ТЕПЕР ВИДИМА ДЛЯ ВСІХ ТИМЧАСОВО) */}
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => setLocation("/admin")} 
-              className="border-red-500 text-red-500 hover:bg-red-50"
-            >
-              <Shield className="w-5 h-5" />
-            </Button>
-            
+            {/* Кнопка Адміна (Тільки для вас) */}
+            {(role === "admin" || String(userId) === ADMIN_ID) && (
+              <Button variant="outline" size="icon" onClick={() => setLocation("/admin")} className="border-red-500 text-red-500 hover:bg-red-50">
+                <Shield className="w-5 h-5" />
+              </Button>
+            )}
             <Button variant="ghost" size="icon" onClick={() => setLocation("/client/profile")}>
               <User className="w-6 h-6" />
             </Button>
@@ -128,6 +149,7 @@ export default function ClientHome() {
           <p className="text-sm text-muted-foreground">Керуйте вашими поїздками</p>
         </div>
 
+        {/* Меню створення */}
         <Card>
           <CardHeader><CardTitle className="text-lg">Створити нове замовлення</CardTitle></CardHeader>
           <CardContent>
@@ -149,6 +171,7 @@ export default function ClientHome() {
           <div className="text-center py-8 text-muted-foreground">Завантаження замовлень...</div>
         ) : (
           <>
+            {/* Активні */}
             {activeOrders.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Активні замовлення</h2>
@@ -185,7 +208,6 @@ export default function ClientHome() {
                             </Button>
                           </div>
                         )}
-
                         {(order.status === "accepted" || order.status === "in_progress") && order.driverId && (
                           <DriverInfoSection driverId={order.driverId} orderId={order.orderId} setLocation={setLocation} isInProgress={order.status === "in_progress"} />
                         )}
@@ -195,7 +217,8 @@ export default function ClientHome() {
                 })}
               </div>
             )}
-            {/* Completed Orders */}
+
+            {/* Завершені */}
             {completedOrders.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Завершені замовлення</h2>
@@ -227,8 +250,29 @@ export default function ClientHome() {
             )}
           </>
         )}
+
+        {/* КНОПКА ПІДТРИМКИ */}
+        <div className="pt-4">
+          <Button variant="outline" className="w-full h-12" onClick={() => setSupportOpen(true)}>
+            <MessageCircle className="w-4 h-4 mr-2" /> Написати в підтримку
+          </Button>
+        </div>
+
       </div>
+
+      {/* Діалог оцінки */}
       <RatingDialog open={ratingDialog.open} onOpenChange={(open) => setRatingDialog({ ...ratingDialog, open })} orderId={ratingDialog.orderId} driverName={ratingDialog.driverName} onSuccess={handleRatingSuccess} />
+
+      {/* Діалог підтримки */}
+      <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Підтримка UniWay</DialogTitle><DialogDescription>Опишіть вашу проблему або пропозицію</DialogDescription></DialogHeader>
+          <Textarea value={supportMsg} onChange={(e) => setSupportMsg(e.target.value)} placeholder="Текст повідомлення..." className="min-h-[100px]" />
+          <DialogFooter>
+            <Button onClick={() => sendSupportMutation.mutate()} disabled={!supportMsg || sendSupportMutation.isPending}>{sendSupportMutation.isPending ? "Відправка..." : "Надіслати"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
