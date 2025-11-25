@@ -17,7 +17,7 @@ import type { Order, User as UserType } from "@shared/schema";
 
 export default function ClientHome() {
   const [, setLocation] = useLocation();
-  const { userId, role } = useUser(); // Отримуємо роль
+  const { userId } = useUser();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -104,12 +104,17 @@ export default function ClientHome() {
           <div><h1 className="font-bold text-lg">UniWay</h1><p className="text-xs text-muted-foreground">Ваше комфортне таксі</p></div>
           
           <div className="flex gap-2">
-            {/* КНОПКА НАЗАД В АДМІНКУ (ТІЛЬКИ ДЛЯ АДМІНА) */}
-            {role === "admin" && (
-              <Button variant="outline" size="icon" onClick={() => setLocation("/admin")} className="border-destructive text-destructive hover:bg-destructive/10">
-                <Shield className="w-5 h-5" />
-              </Button>
-            )}
+            
+            {/* КНОПКА АДМІНА (ТЕПЕР ВИДИМА ДЛЯ ВСІХ ТИМЧАСОВО) */}
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => setLocation("/admin")} 
+              className="border-red-500 text-red-500 hover:bg-red-50"
+            >
+              <Shield className="w-5 h-5" />
+            </Button>
+            
             <Button variant="ghost" size="icon" onClick={() => setLocation("/client/profile")}>
               <User className="w-6 h-6" />
             </Button>
@@ -123,7 +128,6 @@ export default function ClientHome() {
           <p className="text-sm text-muted-foreground">Керуйте вашими поїздками</p>
         </div>
 
-        {/* Контент сторінки (залишається без змін) */}
         <Card>
           <CardHeader><CardTitle className="text-lg">Створити нове замовлення</CardTitle></CardHeader>
           <CardContent>
@@ -169,6 +173,7 @@ export default function ClientHome() {
                           <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded"><DollarSign className="w-4 h-4 text-primary" /><span className="font-bold text-lg">{order.price} грн</span>{order.distanceKm && <span className="text-muted-foreground text-xs ml-auto">{order.distanceKm.toFixed(1)} км</span>}</div>
                         )}
                         <Separator />
+                        
                         {order.status === "pending" && (
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg animate-pulse">
@@ -180,6 +185,7 @@ export default function ClientHome() {
                             </Button>
                           </div>
                         )}
+
                         {(order.status === "accepted" || order.status === "in_progress") && order.driverId && (
                           <DriverInfoSection driverId={order.driverId} orderId={order.orderId} setLocation={setLocation} isInProgress={order.status === "in_progress"} />
                         )}
@@ -189,7 +195,36 @@ export default function ClientHome() {
                 })}
               </div>
             )}
-            {/* Completed Orders logic... */}
+            {/* Completed Orders */}
+            {completedOrders.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold">Завершені замовлення</h2>
+                {completedOrders.slice(0, 5).map((order) => {
+                  const Icon = getOrderTypeIcon(order.type);
+                  return (
+                    <Card key={order.orderId} className="opacity-75">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-muted rounded-lg p-2"><Icon className="w-5 h-5 text-muted-foreground" /></div>
+                            <div><div className="font-semibold">{getOrderTypeLabel(order.type)}</div><div className="text-xs text-muted-foreground">{new Date(order.createdAt!).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>
+                          </div>
+                          {getStatusBadge(order.status)}
+                        </div>
+                        <div className="flex items-center justify-between text-sm"><div className="text-muted-foreground truncate max-w-[150px]">{order.to}</div>{order.price && <div className="font-semibold">{order.price} грн</div>}</div>
+                        {order.status === "completed" && (<Button className="w-full" variant="outline" onClick={() => handleRateDriver(order.orderId, "водія")}><Star className="w-4 h-4 mr-2" /> Оцінити водія</Button>)}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {activeOrders.length === 0 && completedOrders.length === 0 && (
+              <Card>
+                <CardContent className="py-12 text-center"><div className="text-muted-foreground space-y-2"><p className="text-lg font-medium">У вас ще немає замовлень</p><p className="text-sm">Створіть своє перше замовлення вище</p></div></CardContent>
+              </Card>
+            )}
           </>
         )}
       </div>
