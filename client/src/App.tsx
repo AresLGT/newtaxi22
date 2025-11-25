@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import RoleSelector from "@/pages/role-selector";
 import ClientHome from "@/pages/client-home";
+import ClientRegister from "@/pages/client-register"; // <--- НЕ ЗАБУДЬТЕ ЦЕЙ ІМПОРТ
 import OrderForm from "@/pages/order-form";
 import DriverRegister from "@/pages/driver-register";
 import DriverDashboard from "@/pages/driver-dashboard";
@@ -24,7 +25,10 @@ function Router() {
       <Route path="/" component={ClientHome} />
       <Route path="/preview" component={PreviewPage} />
       <Route path="/role-selector" component={RoleSelector} />
+      
       <Route path="/client" component={ClientHome} />
+      <Route path="/client-register" component={ClientRegister} /> {/* Новий маршрут */}
+      
       <Route path="/order/:type" component={OrderForm} />
       <Route path="/driver-register" component={DriverRegister} />
       <Route path="/driver" component={DriverDashboard} />
@@ -39,26 +43,33 @@ function Router() {
 
 function AppWrapper() {
   const [location, setLocation] = useLocation();
-  const { role, isLoading } = useUser();
+  const { user, role, isLoading } = useUser();
 
   useEffect(() => {
-    if (!isLoading) {
-      // Логіка редіректів
+    if (!isLoading && user) {
+      
+      // --- ГОЛОВНА ПЕРЕВІРКА ---
+      // Якщо це Клієнт, і у нього НЕМАЄ телефону, і він НЕ на сторінці реєстрації...
+      if (role === "client" && !user.phone && location !== "/client-register" && location !== "/role-selector") {
+        // ...примусово відправляємо його реєструватися!
+        setLocation("/client-register");
+        return;
+      }
+      // -------------------------
+
+      // Інші стандартні редіректи
       if (role === "admin" && location !== "/admin") {
         setLocation("/admin");
       } 
-      // Якщо водій на сторінці вибору ролі - відправити в кабінет
-      else if (role === "driver" && (location === "/role-selector")) {
+      else if (role === "driver" && location === "/role-selector") {
         setLocation("/driver");
       }
-      // Примітка: Ми ПРИБРАЛИ суворий редірект для водія з інших сторінок, 
-      // щоб він міг створювати замовлення (ClientHome)
-      
-      else if (role === "client" && (location === "/" || location === "/role-selector")) {
+      // Якщо клієнт вже все заповнив, то з кореня кидаємо в кабінет
+      else if (role === "client" && (location === "/" || location === "/role-selector") && user.phone) {
         setLocation("/client");
       }
     }
-  }, [role, isLoading, location, setLocation]);
+  }, [user, role, isLoading, location, setLocation]);
 
   if (isLoading) {
     return (
