@@ -16,7 +16,6 @@ export interface Tariff {
   perKm: number;
 }
 
-// Структура для запису: кому яке повідомлення видаляти
 interface NotificationRecord {
   chatId: string;
   messageId: number;
@@ -48,10 +47,9 @@ export interface IStorage {
   releaseOrder(orderId: string): Promise<Order | undefined>;
   completeOrder(orderId: string): Promise<Order | undefined>;
 
-  // --- МЕТОДИ ДЛЯ ПОВІДОМЛЕНЬ ---
+  // Notifications
   addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void>;
   getOrderNotifications(orderId: string): Promise<NotificationRecord[]>;
-  // ------------------------------
 
   // Tariffs
   getTariffs(): Promise<Tariff[]>;
@@ -84,8 +82,6 @@ export class MemStorage implements IStorage {
   private ratings: Map<string, Rating>;
   private rateLimits: Map<string, number[]>;
   private tariffs: Map<string, Tariff>;
-  
-  // База даних повідомлень: OrderID -> [ {chatId, messageId}, ... ]
   private orderNotifications: Map<string, NotificationRecord[]>;
 
   constructor() {
@@ -98,32 +94,34 @@ export class MemStorage implements IStorage {
     this.tariffs = new Map();
     this.orderNotifications = new Map();
 
-    // Тарифи
+    // Тарифи за замовчуванням
     this.tariffs.set("taxi", { type: "taxi", basePrice: 100, perKm: 25 });
     this.tariffs.set("cargo", { type: "cargo", basePrice: 300, perKm: 40 });
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
     this.tariffs.set("towing", { type: "towing", basePrice: 500, perKm: 50 });
 
-    // Адміни
-    this.users.set("admin1", {
-      id: "admin1", role: "admin", name: "Адміністратор", phone: "+380501111111",
-      telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
-    });
+    // --- ТУТ ТІЛЬКИ ВИ (АДМІН) ---
     this.users.set("7677921905", {
-      id: "7677921905", role: "admin", name: "Адміністратор", phone: null,
-      telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
+      id: "7677921905", 
+      role: "admin", 
+      name: "Адміністратор", 
+      phone: null,
+      telegramAvatarUrl: null, 
+      isBlocked: false, 
+      warnings: [], 
+      bonuses: [], 
+      balance: 0
     });
+    // Більше ніяких admin1 тут немає
   }
 
   // --- Users ---
   async getUser(id: string): Promise<User | undefined> { return this.users.get(id); }
-  
   async createUser(insertUser: InsertUser): Promise<User> {
     const user: User = { ...insertUser, isBlocked: false, warnings: [], bonuses: [], balance: 0 };
     this.users.set(user.id, user);
     return user;
   }
-
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
@@ -131,7 +129,6 @@ export class MemStorage implements IStorage {
     this.users.set(id, updatedUser);
     return updatedUser;
   }
-
   async updateBalance(userId: string, amount: number): Promise<User | undefined> {
     const user = this.users.get(userId);
     if (!user) return undefined;
@@ -140,15 +137,12 @@ export class MemStorage implements IStorage {
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
-
-  // --- ВИПРАВЛЕНО: Повертаємо і водіїв, і адмінів ---
+  // Повертаємо і водіїв, і адмінів (щоб ви теж отримували замовлення)
   async getAllDrivers(): Promise<User[]> {
     return Array.from(this.users.values()).filter(
       (user) => user.role === "driver" || user.role === "admin"
     );
   }
-  // --------------------------------------------------
-
   async getAllUsers(): Promise<User[]> { return Array.from(this.users.values()); }
   
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null> {
@@ -209,16 +203,12 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- ВИПРАВЛЕНО: Дозволяємо і адмінам приймати замовлення ---
   async acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order || order.status !== "pending") return undefined;
-
     const driver = await this.getUser(driverId);
-    // Дозволяємо role="driver" АБО role="admin"
-    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) {
-      return undefined;
-    }
+    // Дозволяємо адміну брати замовлення
+    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) return undefined;
     
     let finalPrice = order.price;
     if (distanceKm) {
@@ -234,7 +224,6 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
-  // -----------------------------------------------------------
 
   async releaseOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
@@ -252,7 +241,7 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- Notifications Storage ---
+  // --- Notifications ---
   async addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void> {
     const notifications = this.orderNotifications.get(orderId) || [];
     notifications.push({ chatId, messageId });
@@ -302,9 +291,7 @@ export class MemStorage implements IStorage {
   }
   async getAllRatings(): Promise<Rating[]> { return Array.from(this.ratings.values()); }
   async getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}> {
-    const completedOrders = Array.from(this.orders.values()).filter(
-      (order) => order.driverId === driverId && order.status === "completed"
-    );
+    const completedOrders = Array.from(this.orders.values()).filter((order) => order.driverId === driverId && order.status === "completed");
     const driverRatings = Array.from(this.ratings.values()).filter((rating) => rating.driverId === driverId);
     const totalRatings = driverRatings.length;
     const averageRating = totalRatings > 0 ? driverRatings.reduce((sum, r) => sum + r.stars, 0) / totalRatings : 0;
