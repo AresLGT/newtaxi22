@@ -10,19 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Users, Car, Ban, CheckCircle, RefreshCw, Activity, 
-  XCircle, ArrowLeft, Settings, Star, Megaphone, Wallet, Coins, Truck, Package, Unplug
+  XCircle, ArrowLeft, Settings, Star, Megaphone, Wallet, Coins, User
 } from "lucide-react";
-import type { User, Order, AccessCode, Rating } from "@shared/schema";
+import type { User as UserType, Order, AccessCode, Rating } from "@shared/schema";
 
 type AdminView = "menu" | "overview" | "dispatcher" | "drivers" | "finance" | "tariffs" | "reviews" | "broadcast";
-
-// Словник для перекладу назв тарифів
-const TARIFF_NAMES: Record<string, string> = {
-  taxi: "🚕 Таксі (Легкове)",
-  cargo: "🚚 Вантажне",
-  courier: "📦 Кур'єр",
-  towing: "🪝 Евакуатор"
-};
 
 export default function AdminDashboard() {
   const [, setLocation] = useLocation();
@@ -32,7 +24,7 @@ export default function AdminDashboard() {
   const [broadcastMsg, setBroadcastMsg] = useState("");
 
   // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
-  const { data: drivers = [] } = useQuery<User[]>({ queryKey: ["/api/admin/drivers"] });
+  const { data: drivers = [] } = useQuery<UserType[]>({ queryKey: ["/api/admin/drivers"] });
   const { data: orders = [] } = useQuery<Order[]>({ queryKey: ["/api/admin/orders/all"], refetchInterval: 3000 });
   const { data: reviews = [] } = useQuery<Rating[]>({ queryKey: ["/api/admin/reviews"] });
   const { data: tariffs = [] } = useQuery<any[]>({ queryKey: ["/api/admin/tariffs"] });
@@ -108,29 +100,46 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       
-      {/* ШАПКА */}
+      {/* ШАПКА З КНОПКАМИ ПЕРЕХОДУ */}
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3 justify-between">
-          <div className="flex items-center gap-3">
-            {currentView !== "menu" && (
-              <Button variant="ghost" size="icon" onClick={() => setCurrentView("menu")}>
-                <ArrowLeft className="w-6 h-6" />
-              </Button>
-            )}
-            <h1 className="text-lg font-bold">
-              {currentView === "menu" ? "Адмін Панель" : menuItems.find(i => i.id === currentView)?.title}
-            </h1>
-          </div>
+        <div className="max-w-2xl mx-auto px-4 py-3 flex flex-col gap-3">
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
-            onClick={() => setLocation("/driver")}
-          >
-            <Car className="w-4 h-4 mr-2" />
-            Таксувати
-          </Button>
+          <div className="flex items-center gap-3 justify-between">
+            <div className="flex items-center gap-3">
+              {currentView !== "menu" && (
+                <Button variant="ghost" size="icon" onClick={() => setCurrentView("menu")}>
+                  <ArrowLeft className="w-6 h-6" />
+                </Button>
+              )}
+              <h1 className="text-lg font-bold">
+                {currentView === "menu" ? "Адмін Панель" : menuItems.find(i => i.id === currentView)?.title}
+              </h1>
+            </div>
+          </div>
+
+          {/* ПАНЕЛЬ ПЕРЕМИКАННЯ РЕЖИМІВ */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-blue-500 text-blue-600 hover:bg-blue-50"
+              onClick={() => setLocation("/client")}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Я Клієнт
+            </Button>
+
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-yellow-500 text-yellow-600 hover:bg-yellow-50"
+              onClick={() => setLocation("/driver")}
+            >
+              <Car className="w-4 h-4 mr-2" />
+              Я Водій
+            </Button>
+          </div>
+
         </div>
       </div>
 
@@ -161,41 +170,20 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ТАРИФИ (УКРАЇНСЬКОЮ) */}
+        {/* ТАРИФИ */}
         {currentView === "tariffs" && (
           <div className="space-y-4">
             {tariffs.map((t) => (
               <Card key={t.type}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xl">
-                    {/* Використовуємо словник для перекладу */}
-                    {TARIFF_NAMES[t.type] || t.type}
-                  </CardTitle>
-                </CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="capitalize">{t.type}</CardTitle></CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-xs mb-1 text-muted-foreground font-medium">Базова ціна (подача)</div>
-                    <div className="relative">
-                      <Input 
-                        type="number" 
-                        defaultValue={t.basePrice} 
-                        onBlur={(e) => updateTariffMutation.mutate({ ...t, basePrice: +e.target.value })} 
-                        className="pl-8"
-                      />
-                      <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">₴</span>
-                    </div>
+                    <div className="text-xs mb-1">Базова (грн)</div>
+                    <Input type="number" defaultValue={t.basePrice} onBlur={(e) => updateTariffMutation.mutate({ ...t, basePrice: +e.target.value })} />
                   </div>
                   <div>
-                    <div className="text-xs mb-1 text-muted-foreground font-medium">Ціна за 1 км</div>
-                    <div className="relative">
-                      <Input 
-                        type="number" 
-                        defaultValue={t.perKm} 
-                        onBlur={(e) => updateTariffMutation.mutate({ ...t, perKm: +e.target.value })}
-                        className="pl-8"
-                      />
-                      <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">₴</span>
-                    </div>
+                    <div className="text-xs mb-1">За км (грн)</div>
+                    <Input type="number" defaultValue={t.perKm} onBlur={(e) => updateTariffMutation.mutate({ ...t, perKm: +e.target.value })} />
                   </div>
                 </CardContent>
               </Card>
@@ -226,14 +214,14 @@ export default function AdminDashboard() {
         {/* ДИСПЕТЧЕР */}
         {currentView === "dispatcher" && (
           <div className="space-y-4">
-            {orders.length === 0 ? <div className="text-center text-muted-foreground py-8">Замовлень немає</div> : orders.map((order) => (
+            {orders.length === 0 ? <div className="text-center text-muted-foreground">Пусто</div> : orders.map((order) => (
               <Card key={order.orderId} className="overflow-hidden">
                 <div className={`h-1 w-full ${order.status === 'pending' ? 'bg-yellow-500' : order.status === 'completed' ? 'bg-gray-500' : 'bg-green-500'}`} />
                 <CardContent className="p-4 space-y-2">
                   <div className="flex justify-between"><Badge variant="outline">#{order.orderId.slice(0,6)}</Badge><Badge>{order.status}</Badge></div>
                   
                   <div className="text-sm flex items-center gap-2">
-                    {order.from} <span className="text-muted-foreground">→</span> {order.to}
+                    {order.from} <span className="text-muted-foreground">&rarr;</span> {order.to}
                   </div>
 
                   <div className="text-xs text-muted-foreground border-t pt-2 flex justify-between">
@@ -242,7 +230,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {(order.status === 'pending' || order.status === 'accepted') && (
-                    <Button variant="destructive" size="sm" className="w-full mt-2" onClick={() => cancelOrderMutation.mutate(order.orderId)}>Скасувати замовлення</Button>
+                    <Button variant="destructive" size="sm" className="w-full mt-2" onClick={() => cancelOrderMutation.mutate(order.orderId)}>Скасувати</Button>
                   )}
                 </CardContent>
               </Card>
@@ -253,12 +241,9 @@ export default function AdminDashboard() {
         {/* РОЗСИЛКА */}
         {currentView === "broadcast" && (
           <Card>
-            <CardHeader>
-              <CardTitle>Надіслати повідомлення</CardTitle>
-              <CardDescription>Це повідомлення отримають всі користувачі бота</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Надіслати повідомлення</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <Textarea placeholder="Текст повідомлення..." value={broadcastMsg} onChange={(e) => setBroadcastMsg(e.target.value)} className="min-h-[100px]" />
+              <Textarea placeholder="Текст повідомлення..." value={broadcastMsg} onChange={(e) => setBroadcastMsg(e.target.value)} />
               <Button className="w-full" onClick={() => broadcastMutation.mutate()} disabled={!broadcastMsg}>Надіслати всім</Button>
             </CardContent>
           </Card>
@@ -267,13 +252,10 @@ export default function AdminDashboard() {
         {/* ВІДГУКИ */}
         {currentView === "reviews" && (
           <div className="space-y-3">
-            {reviews.length === 0 ? <div className="text-center py-8 text-muted-foreground">Відгуків ще немає</div> : reviews.map((r) => (
+            {reviews.map((r) => (
               <Card key={r.id}>
                 <CardContent className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex text-yellow-500">{[...Array(r.stars)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}</div>
-                    <span className="text-xs text-muted-foreground">{new Date(r.createdAt!).toLocaleDateString()}</span>
-                  </div>
+                  <div className="flex text-yellow-500">{[...Array(r.stars)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}</div>
                   <p className="text-sm italic">"{r.comment || "Без коментаря"}"</p>
                   <div className="text-xs text-muted-foreground">Замовлення #{r.orderId.slice(0,6)}</div>
                 </CardContent>

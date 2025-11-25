@@ -5,21 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Car, Truck, Package, Unplug, Clock, User, MessageSquare, Star, MapPin, DollarSign, Phone, XCircle
+  Car, Truck, Package, Unplug, Clock, User, MessageSquare, Star, MapPin, DollarSign, Phone, XCircle, Shield
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"; // <-- Додав useMutation
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useUser } from "@/lib/use-user";
 import { RatingDialog } from "@/components/rating-dialog";
-import { apiRequest } from "@/lib/queryClient"; // <-- Додав імпорт
-import { useToast } from "@/hooks/use-toast"; // <-- Додав useToast
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Order, User as UserType } from "@shared/schema";
 
 export default function ClientHome() {
   const [, setLocation] = useLocation();
-  const { userId } = useUser();
+  const { userId, role } = useUser(); // Отримуємо роль
   const queryClient = useQueryClient();
-  const { toast } = useToast(); // <-- Ініціалізація toast
+  const { toast } = useToast();
   
   const [ratingDialog, setRatingDialog] = useState<{
     open: boolean;
@@ -40,7 +40,6 @@ export default function ClientHome() {
     refetchInterval: 3000, 
   });
 
-  // --- МУТАЦІЯ СКАСУВАННЯ ---
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const response = await apiRequest("POST", `/api/orders/${orderId}/cancel`);
@@ -51,17 +50,12 @@ export default function ClientHome() {
       toast({ title: "Замовлення скасовано" });
     },
   });
-  // --------------------------
 
   useEffect(() => {
     orders.forEach(order => {
       const prevStatus = prevOrdersRef.current[order.orderId];
       if (prevStatus && prevStatus !== "completed" && order.status === "completed") {
-        setRatingDialog({
-          open: true,
-          orderId: order.orderId,
-          driverName: "Водія"
-        });
+        setRatingDialog({ open: true, orderId: order.orderId, driverName: "Водія" });
       }
       prevOrdersRef.current[order.orderId] = order.status;
     });
@@ -103,15 +97,23 @@ export default function ClientHome() {
 
   return (
     <div className="min-h-screen bg-background">
+      
+      {/* ШАПКА */}
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="font-bold text-lg">UniWay</h1>
-            <p className="text-xs text-muted-foreground">Ваше комфортне таксі</p>
+          <div><h1 className="font-bold text-lg">UniWay</h1><p className="text-xs text-muted-foreground">Ваше комфортне таксі</p></div>
+          
+          <div className="flex gap-2">
+            {/* КНОПКА НАЗАД В АДМІНКУ (ТІЛЬКИ ДЛЯ АДМІНА) */}
+            {role === "admin" && (
+              <Button variant="outline" size="icon" onClick={() => setLocation("/admin")} className="border-destructive text-destructive hover:bg-destructive/10">
+                <Shield className="w-5 h-5" />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/client/profile")}>
+              <User className="w-6 h-6" />
+            </Button>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/client/profile")}>
-            <User className="w-6 h-6" />
-          </Button>
         </div>
       </div>
 
@@ -121,6 +123,7 @@ export default function ClientHome() {
           <p className="text-sm text-muted-foreground">Керуйте вашими поїздками</p>
         </div>
 
+        {/* Контент сторінки (залишається без змін) */}
         <Card>
           <CardHeader><CardTitle className="text-lg">Створити нове замовлення</CardTitle></CardHeader>
           <CardContent>
@@ -172,13 +175,7 @@ export default function ClientHome() {
                               <Clock className="w-5 h-5" />
                               <span className="text-sm font-medium">Шукаємо водія...</span>
                             </div>
-                            {/* Кнопка СКАСУВАТИ для клієнта */}
-                            <Button 
-                              variant="destructive" 
-                              className="w-full" 
-                              onClick={() => cancelOrderMutation.mutate(order.orderId)}
-                              disabled={cancelOrderMutation.isPending}
-                            >
+                            <Button variant="destructive" className="w-full" onClick={() => cancelOrderMutation.mutate(order.orderId)} disabled={cancelOrderMutation.isPending}>
                               <XCircle className="w-4 h-4 mr-2" /> Скасувати пошук
                             </Button>
                           </div>
@@ -192,7 +189,7 @@ export default function ClientHome() {
                 })}
               </div>
             )}
-            {/* Completed Orders logic... (пропустимо для скорочення, воно там є) */}
+            {/* Completed Orders logic... */}
           </>
         )}
       </div>
