@@ -4,8 +4,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Users, 
@@ -13,35 +11,37 @@ import {
   Ban, 
   CheckCircle, 
   RefreshCw, 
-  Key,
   Activity,
   MapPin,
   XCircle,
-  DollarSign
+  DollarSign,
+  ArrowLeft,
+  Settings,
+  LayoutDashboard
 } from "lucide-react";
 import type { User, Order, AccessCode } from "@shared/schema";
 
+type AdminView = "menu" | "overview" | "dispatcher" | "drivers" | "settings";
+
 export default function AdminDashboard() {
   const { toast } = useToast();
+  const [currentView, setCurrentView] = useState<AdminView>("menu");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
-  // 1. Завантаження даних
+  // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
   const { data: drivers = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/drivers"],
   });
 
-  const { data: orders = [], isLoading: isOrdersLoading } = useQuery<Order[]>({
+  const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/admin/orders/all"],
-    refetchInterval: 3000, // Живе оновлення кожні 3 сек
+    refetchInterval: 3000,
   });
 
-  // --- МУТАЦІЇ (Дії адміна) ---
-
+  // --- МУТАЦІЇ ---
   const generateCodeMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/admin/generate-code", {
-        adminId: "admin1", 
-      });
+      const res = await apiRequest("POST", "/api/admin/generate-code", { adminId: "admin1" });
       return await res.json();
     },
     onSuccess: (data: AccessCode) => {
@@ -71,202 +71,238 @@ export default function AdminDashboard() {
   });
 
   // --- СТАТИСТИКА ---
-  const totalOrders = orders.length;
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'accepted' || o.status === 'in_progress');
   const completedOrders = orders.filter(o => o.status === 'completed');
   const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.price || 0), 0);
 
+  // --- МЕНЮ ---
+  const menuItems = [
+    {
+      id: "overview",
+      title: "Загальна статистика",
+      desc: "Доходи та активність",
+      icon: Activity,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10"
+    },
+    {
+      id: "dispatcher",
+      title: "Диспетчерська",
+      desc: "Керування замовленнями",
+      icon: Car,
+      color: "text-orange-500",
+      bg: "bg-orange-500/10"
+    },
+    {
+      id: "drivers",
+      title: "Водії",
+      desc: "Блокування та список",
+      icon: Users,
+      color: "text-green-500",
+      bg: "bg-green-500/10"
+    },
+    {
+      id: "settings",
+      title: "Налаштування",
+      desc: "Генерація кодів доступу",
+      icon: Settings,
+      color: "text-purple-500",
+      bg: "bg-purple-500/10"
+    }
+  ];
+
+  // --- РЕНДЕР ---
   return (
-    <div className="min-h-screen bg-background p-4 space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Адмін Панель</h1>
-          <p className="text-muted-foreground">Керування службою UniWay</p>
-        </div>
-        <div className="flex gap-2">
-          <Badge variant="outline" className="h-8 px-3 text-sm">
-            {activeOrders.length} замовлень в ефірі
-          </Badge>
+    <div className="min-h-screen bg-background">
+      
+      {/* ШАПКА */}
+      <div className="sticky top-0 z-10 bg-card border-b border-card-border">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          {currentView !== "menu" && (
+            <Button variant="ghost" size="icon" onClick={() => setCurrentView("menu")}>
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+          )}
+          <div className="flex-1">
+            <h1 className="text-lg font-bold flex items-center gap-2">
+              {currentView === "menu" ? "Адмін Панель" : 
+               menuItems.find(i => i.id === currentView)?.title}
+            </h1>
+          </div>
+          {activeOrders.length > 0 && (
+            <Badge variant="default" className="bg-green-600 animate-pulse">
+              {activeOrders.length} в роботі
+            </Badge>
+          )}
         </div>
       </div>
 
-      {/* Вкладки */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-12">
-          <TabsTrigger value="overview">Огляд</TabsTrigger>
-          <TabsTrigger value="dispatcher">Диспетчер</TabsTrigger>
-          <TabsTrigger value="drivers">Водії</TabsTrigger>
-          <TabsTrigger value="settings">Налаштування</TabsTrigger>
-        </TabsList>
+      <div className="max-w-2xl mx-auto p-4 space-y-6">
+        
+        {/* ГОЛОВНЕ МЕНЮ */}
+        {currentView === "menu" && (
+          <div className="grid gap-4">
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg mb-2">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-muted-foreground">Оборот сервісу:</div>
+                <div className="text-2xl font-bold text-primary">{totalRevenue} ₴</div>
+              </div>
+            </div>
 
-        {/* Вкладка 1: ОГЛЯД (Статистика) */}
-        <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {menuItems.map((item) => (
+              <Card 
+                key={item.id} 
+                className="cursor-pointer hover:bg-accent/50 transition-all border-primary/20"
+                onClick={() => setCurrentView(item.id as AdminView)}
+              >
+                <CardContent className="flex items-center gap-4 p-4">
+                  <div className={`p-3 rounded-full ${item.bg}`}>
+                    <item.icon className={`w-6 h-6 ${item.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-bold text-lg">{item.title}</div>
+                    <div className="text-sm text-muted-foreground">{item.desc}</div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* 1. ОГЛЯД */}
+        {currentView === "overview" && (
+          <div className="grid gap-4 grid-cols-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Всього замовлень</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalOrders}</div>
-              </CardContent>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Всього замовлень</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{orders.length}</div></CardContent>
             </Card>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Активні зараз</CardTitle>
-                <Car className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-500">{activeOrders.length}</div>
-              </CardContent>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Активні зараз</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold text-blue-500">{activeOrders.length}</div></CardContent>
             </Card>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Водіїв в базі</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{drivers.length}</div>
-              </CardContent>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Водіїв</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold">{drivers.length}</div></CardContent>
             </Card>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Оборот (прибл.)</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{totalRevenue} ₴</div>
-              </CardContent>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Завершено</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-bold text-green-600">{completedOrders.length}</div></CardContent>
             </Card>
           </div>
-        </TabsContent>
+        )}
 
-        {/* Вкладка 2: ДИСПЕТЧЕРСЬКА (Керування замовленнями) */}
-        <TabsContent value="dispatcher" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Моніторинг замовлень</CardTitle>
-              <CardDescription>Список усіх активних та завершених поїздок</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {orders.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">Замовлень поки немає</div>
-                ) : (
-                  orders.map((order) => (
-                    <div key={order.orderId} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
-                      <div className="space-y-1 mb-2 md:mb-0">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={
-                            order.status === 'pending' ? 'secondary' :
-                            order.status === 'accepted' || order.status === 'in_progress' ? 'default' :
-                            order.status === 'completed' ? 'outline' : 'destructive'
-                          }>
-                            {order.status.toUpperCase()}
-                          </Badge>
-                          <span className="font-mono text-xs text-muted-foreground">#{order.orderId.slice(0,6)}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(order.createdAt!).toLocaleString('uk-UA')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm mt-1">
-                          <MapPin className="w-3 h-3 text-green-500" /> {order.from} 
-                          <span className="text-muted-foreground">→</span>
-                          <MapPin className="w-3 h-3 text-red-500" /> {order.to}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Клієнт ID: {order.clientId} | Водій: {order.driverId || "Не призначено"}
-                        </div>
-                      </div>
-                      
-                      {/* Кнопки дій для активних замовлень */}
-                      {(order.status === 'pending' || order.status === 'accepted') && (
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          onClick={() => cancelOrderMutation.mutate(order.orderId)}
-                          disabled={cancelOrderMutation.isPending}
-                        >
-                          <XCircle className="w-4 h-4 mr-1" /> Скасувати
-                        </Button>
-                      )}
+        {/* 2. ДИСПЕТЧЕРСЬКА */}
+        {currentView === "dispatcher" && (
+          <div className="space-y-4">
+            {orders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">Список порожній</div>
+            ) : (
+              orders.map((order) => (
+                <Card key={order.orderId} className="overflow-hidden">
+                  <div className={`h-1 w-full ${
+                    order.status === 'pending' ? 'bg-yellow-500' :
+                    order.status === 'accepted' || order.status === 'in_progress' ? 'bg-green-500' :
+                    order.status === 'cancelled' ? 'bg-red-500' : 'bg-gray-500'
+                  }`} />
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <Badge variant="outline">#{order.orderId.slice(0,6)}</Badge>
+                      <Badge variant={
+                        order.status === 'pending' ? 'secondary' :
+                        order.status === 'accepted' ? 'default' :
+                        order.status === 'cancelled' ? 'destructive' : 'outline'
+                      }>
+                        {order.status === 'pending' ? 'Пошук' :
+                         order.status === 'accepted' ? 'Прийнято' :
+                         order.status === 'in_progress' ? 'В дорозі' :
+                         order.status === 'completed' ? 'Завершено' : 'Скасовано'}
+                      </Badge>
                     </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    
+                    <div className="text-sm space-y-1">
+                      <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-green-500"/> {order.from}</div>
+                      <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-red-500"/> {order.to}</div>
+                    </div>
 
-        {/* Вкладка 3: ВОДІЇ */}
-        <TabsContent value="drivers" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Керування водіями</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {drivers.map((driver) => (
-                  <div key={driver.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-2 h-2 rounded-full ${driver.isBlocked ? "bg-red-500" : "bg-green-500"}`} />
-                      <div>
-                        <div className="font-medium">{driver.name}</div>
-                        <div className="text-sm text-muted-foreground">{driver.phone}</div>
-                      </div>
+                    <div className="text-xs text-muted-foreground flex justify-between border-t pt-2">
+                      <span>Клієнт: {order.clientId}</span>
+                      <span>Водій: {order.driverId || "-"}</span>
                     </div>
-                    <Button
-                      variant={driver.isBlocked ? "default" : "secondary"}
-                      size="sm"
-                      onClick={() => blockDriverMutation.mutate(driver.id)}
-                    >
-                      {driver.isBlocked ? (
-                        <><CheckCircle className="w-4 h-4 mr-2" /> Розблокувати</>
-                      ) : (
-                        <><Ban className="w-4 h-4 mr-2" /> Заблокувати</>
-                      )}
-                    </Button>
+
+                    {(order.status === 'pending' || order.status === 'accepted') && (
+                      <Button 
+                        variant="destructive" 
+                        className="w-full mt-2"
+                        size="sm"
+                        onClick={() => cancelOrderMutation.mutate(order.orderId)}
+                        disabled={cancelOrderMutation.isPending}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" /> Скасувати замовлення
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* 3. ВОДІЇ */}
+        {currentView === "drivers" && (
+          <div className="space-y-3">
+            {drivers.map((driver) => (
+              <Card key={driver.id}>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ${driver.isBlocked ? "bg-red-500" : "bg-green-500"}`} />
+                    <div>
+                      <div className="font-bold">{driver.name}</div>
+                      <div className="text-sm text-muted-foreground">{driver.phone}</div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  <Button
+                    variant={driver.isBlocked ? "default" : "secondary"}
+                    size="sm"
+                    onClick={() => blockDriverMutation.mutate(driver.id)}
+                  >
+                    {driver.isBlocked ? "Розблокувати" : "Блок"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
-        {/* Вкладка 4: НАЛАШТУВАННЯ (Коди) */}
-        <TabsContent value="settings" className="mt-4">
+        {/* 4. НАЛАШТУВАННЯ */}
+        {currentView === "settings" && (
           <Card>
             <CardHeader>
               <CardTitle>Реєстрація водіїв</CardTitle>
-              <CardDescription>Згенеруйте код доступу для нового водія</CardDescription>
+              <CardDescription>Генерація одноразових кодів</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Button 
-                  onClick={() => generateCodeMutation.mutate()} 
-                  disabled={generateCodeMutation.isPending}
-                  className="w-full md:w-auto"
-                >
-                  <RefreshCw className={`mr-2 h-4 w-4 ${generateCodeMutation.isPending ? 'animate-spin' : ''}`} />
-                  Згенерувати новий код
-                </Button>
-              </div>
+              <Button 
+                onClick={() => generateCodeMutation.mutate()} 
+                disabled={generateCodeMutation.isPending}
+                className="w-full h-12 text-lg"
+              >
+                <RefreshCw className={`mr-2 h-5 w-5 ${generateCodeMutation.isPending ? 'animate-spin' : ''}`} />
+                Згенерувати код
+              </Button>
               
               {generatedCode && (
-                <div className="p-4 bg-muted rounded-lg border border-primary/20 flex flex-col items-center animate-in fade-in">
-                  <div className="text-sm text-muted-foreground mb-1">Код доступу:</div>
-                  <div className="text-3xl font-mono font-bold tracking-widest text-primary select-all">
+                <div className="p-6 bg-muted rounded-xl border-2 border-primary border-dashed flex flex-col items-center animate-in zoom-in">
+                  <div className="text-sm text-muted-foreground mb-2">Код доступу:</div>
+                  <div className="text-4xl font-mono font-bold tracking-widest text-primary select-all">
                     {generatedCode}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    Передайте цей код водію для реєстрації
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+
+      </div>
     </div>
   );
 }
