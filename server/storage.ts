@@ -10,11 +10,16 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// Типи для тарифів
 export interface Tariff {
   type: string;
   basePrice: number;
   perKm: number;
+}
+
+// Структура для запису: кому яке повідомлення видаляти
+interface NotificationRecord {
+  chatId: string;
+  messageId: number;
 }
 
 export interface IStorage {
@@ -23,10 +28,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllDrivers(): Promise<User[]>;
-  getAllUsers(): Promise<User[]>; // <--- НОВИЙ МЕТОД
+  getAllUsers(): Promise<User[]>;
   registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null>;
   
-  // Finance methods
+  // Finance
   updateBalance(userId: string, amount: number): Promise<User | undefined>;
 
   // Order methods
@@ -43,24 +48,29 @@ export interface IStorage {
   releaseOrder(orderId: string): Promise<Order | undefined>;
   completeOrder(orderId: string): Promise<Order | undefined>;
 
-  // Tariffs methods
+  // --- МЕТОДИ ДЛЯ ПОВІДОМЛЕНЬ ---
+  addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void>;
+  getOrderNotifications(orderId: string): Promise<NotificationRecord[]>;
+  // ------------------------------
+
+  // Tariffs
   getTariffs(): Promise<Tariff[]>;
   updateTariff(type: string, basePrice: number, perKm: number): Promise<void>;
 
-  // Access Code & Chat methods
+  // Access Code & Chat
   generateAccessCode(issuedBy: string): Promise<AccessCode>;
   validateAccessCode(code: string): Promise<AccessCode | undefined>;
   markCodeAsUsed(code: string, userId: string): Promise<boolean>;
   getChatMessages(orderId: string): Promise<ChatMessage[]>;
   sendChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
 
-  // Rating methods
+  // Rating
   rateOrder(orderId: string, stars: number, comment?: string): Promise<boolean>;
   getAllRatings(): Promise<Rating[]>;
   getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}>;
   getDriverBadges(driverId: string): Promise<string | null>;
 
-  // Rate limit methods
+  // Rate limit
   getRateLimitTimestamps(userId: string): Promise<number[]>;
   saveRateLimitTimestamps(userId: string, timestamps: number[]): Promise<void>;
   cleanExpiredRateLimits(): Promise<void>;
@@ -74,6 +84,9 @@ export class MemStorage implements IStorage {
   private ratings: Map<string, Rating>;
   private rateLimits: Map<string, number[]>;
   private tariffs: Map<string, Tariff>;
+  
+  // База даних повідомлень: OrderID -> [ {chatId, messageId}, ... ]
+  private orderNotifications: Map<string, NotificationRecord[]>;
 
   constructor() {
     this.users = new Map();
@@ -83,6 +96,7 @@ export class MemStorage implements IStorage {
     this.ratings = new Map();
     this.rateLimits = new Map();
     this.tariffs = new Map();
+    this.orderNotifications = new Map();
 
     // Тарифи
     this.tariffs.set("taxi", { type: "taxi", basePrice: 100, perKm: 25 });
@@ -103,13 +117,11 @@ export class MemStorage implements IStorage {
 
   // --- Users ---
   async getUser(id: string): Promise<User | undefined> { return this.users.get(id); }
-  
   async createUser(insertUser: InsertUser): Promise<User> {
     const user: User = { ...insertUser, isBlocked: false, warnings: [], bonuses: [], balance: 0 };
     this.users.set(user.id, user);
     return user;
   }
-
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
@@ -117,7 +129,6 @@ export class MemStorage implements IStorage {
     this.users.set(id, updatedUser);
     return updatedUser;
   }
-
   async updateBalance(userId: string, amount: number): Promise<User | undefined> {
     const user = this.users.get(userId);
     if (!user) return undefined;
@@ -126,17 +137,9 @@ export class MemStorage implements IStorage {
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
-
-  async getAllDrivers(): Promise<User[]> {
-    return Array.from(this.users.values()).filter((user) => user.role === "driver");
-  }
-
-  // --- НОВИЙ МЕТОД: Отримати всіх юзерів ---
-  async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
-  }
-  // ---------------------------------------
-
+  async getAllDrivers(): Promise<User[]> { return Array.from(this.users.values()).filter((user) => user.role === "driver"); }
+  async getAllUsers(): Promise<User[]> { return Array.from(this.users.values()); }
+  
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null> {
     const accessCode = await this.validateAccessCode(code);
     if (!accessCode || accessCode.isUsed) return null;
@@ -151,10 +154,7 @@ export class MemStorage implements IStorage {
   }
 
   // --- Tariffs ---
-  async getTariffs(): Promise<Tariff[]> {
-    return Array.from(this.tariffs.values());
-  }
-
+  async getTariffs(): Promise<Tariff[]> { return Array.from(this.tariffs.values()); }
   async updateTariff(type: string, basePrice: number, perKm: number): Promise<void> {
     this.tariffs.set(type, { type, basePrice, perKm });
   }
@@ -177,21 +177,19 @@ export class MemStorage implements IStorage {
       (order.status === "accepted" || order.status === "arrived" || order.status === "in_progress")
     );
   }
+  
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderId = randomUUID();
-    // Беремо ціну з тарифів, якщо вона не передана
     let price = insertOrder.price;
     if (!price && insertOrder.type && insertOrder.distanceKm) {
         const tariff = this.tariffs.get(insertOrder.type);
-        if (tariff) {
-            price = tariff.basePrice + Math.ceil(insertOrder.distanceKm * tariff.perKm);
-        }
+        if (tariff) price = tariff.basePrice + Math.ceil(insertOrder.distanceKm * tariff.perKm);
     }
-
     const order: Order = { orderId, ...insertOrder, price, status: "pending", driverId: null, createdAt: new Date() };
     this.orders.set(orderId, order);
     return order;
   }
+
   async updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
@@ -199,6 +197,7 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
+
   async acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order || order.status !== "pending") return undefined;
@@ -208,9 +207,7 @@ export class MemStorage implements IStorage {
     let finalPrice = order.price;
     if (distanceKm) {
        const tariff = this.tariffs.get(order.type);
-       if (tariff) {
-         finalPrice = tariff.basePrice + Math.ceil(distanceKm * tariff.perKm);
-       }
+       if (tariff) finalPrice = tariff.basePrice + Math.ceil(distanceKm * tariff.perKm);
     }
 
     const updatedOrder: Order = {
@@ -221,6 +218,7 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
+
   async releaseOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
@@ -228,6 +226,7 @@ export class MemStorage implements IStorage {
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
+
   async completeOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
@@ -236,15 +235,22 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- Access Codes & Chat ---
+  // --- РЕАЛІЗАЦІЯ НОВИХ МЕТОДІВ ДЛЯ ПОВІДОМЛЕНЬ ---
+  async addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void> {
+    const notifications = this.orderNotifications.get(orderId) || [];
+    notifications.push({ chatId, messageId });
+    this.orderNotifications.set(orderId, notifications);
+  }
+
+  async getOrderNotifications(orderId: string): Promise<NotificationRecord[]> {
+    return this.orderNotifications.get(orderId) || [];
+  }
+  // ------------------------------------------------
+
+  // Access Code & Chat
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
-    let code: string;
-    let attempts = 0;
-    do {
-      code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      attempts++;
-      if (attempts >= 10) { code = randomUUID().substring(0, 8).toUpperCase(); break; }
-    } while (this.accessCodes.has(code));
+    let code: string; let attempts = 0;
+    do { code = Math.random().toString(36).substring(2, 8).toUpperCase(); attempts++; if (attempts >= 10) { code = randomUUID().substring(0, 8).toUpperCase(); break; } } while (this.accessCodes.has(code));
     const accessCode: AccessCode = { code, isUsed: false, issuedBy, usedBy: null, createdAt: new Date() };
     this.accessCodes.set(code, accessCode);
     return accessCode;
@@ -267,25 +273,20 @@ export class MemStorage implements IStorage {
     return message;
   }
 
-  // --- Ratings & Stats ---
+  // Rating & Stats
   async rateOrder(orderId: string, stars: number, comment?: string): Promise<boolean> {
     const order = this.orders.get(orderId);
     if (!order || order.status !== "completed" || !order.driverId) return false;
     const existingRating = Array.from(this.ratings.values()).find((rating) => rating.orderId === orderId);
     if (existingRating) return false;
     const ratingId = randomUUID();
-    const rating: Rating = {
-      id: ratingId, orderId, driverId: order.driverId, stars: Math.min(5, Math.max(1, Math.floor(stars))),
-      comment: comment || null, createdAt: new Date(),
-    };
+    const rating: Rating = { id: ratingId, orderId, driverId: order.driverId, stars: Math.min(5, Math.max(1, Math.floor(stars))), comment: comment || null, createdAt: new Date() };
     this.ratings.set(ratingId, rating);
     return true;
   }
   async getAllRatings(): Promise<Rating[]> { return Array.from(this.ratings.values()); }
   async getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}> {
-    const completedOrders = Array.from(this.orders.values()).filter(
-      (order) => order.driverId === driverId && order.status === "completed"
-    );
+    const completedOrders = Array.from(this.orders.values()).filter((order) => order.driverId === driverId && order.status === "completed");
     const driverRatings = Array.from(this.ratings.values()).filter((rating) => rating.driverId === driverId);
     const totalRatings = driverRatings.length;
     const averageRating = totalRatings > 0 ? driverRatings.reduce((sum, r) => sum + r.stars, 0) / totalRatings : 0;
