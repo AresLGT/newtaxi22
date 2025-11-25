@@ -50,30 +50,35 @@ function AppWrapper() {
   useEffect(() => {
     if (!isLoading && user) {
       
-      // --- 1. ЛОГІКА ДЛЯ АДМІНА (ВИПРАВЛЕНО) ---
+      // --- 1. ПРАВИЛА ДЛЯ АДМІНА (МАКСИМАЛЬНА СВОБОДА) ---
       if (role === "admin") {
-        // Якщо адмін зайшов на стартову сторінку або вибір ролі -> в Адмінку
-        if (location === "/" || location === "/role-selector") {
+        // Тільки якщо адмін на сторінці вибору ролі або логіна - направляємо в панель
+        if (location === "/role-selector" || location === "/admin-login") {
           setLocation("/admin");
         }
-        // ВАЖЛИВО: Якщо адмін перейшов на /driver або /client, ми нічого не робимо (дозволяємо це)
-        return;
+        // У всіх інших випадках (/driver, /client, /admin) - НІЧОГО НЕ РОБИМО.
+        // Адмін має право бути де завгодно.
+        return; 
       }
 
-      // --- 2. ЛОГІКА ДЛЯ КЛІЄНТА ---
-      // Якщо немає телефону -> на реєстрацію
-      if (role === "client" && !user.phone && location !== "/client-register" && location !== "/role-selector") {
-        setLocation("/client-register");
-        return;
-      }
-      // Якщо телефон є і клієнт на старті -> в кабінет
-      if (role === "client" && (location === "/" || location === "/role-selector") && user.phone) {
-        setLocation("/client");
+      // --- 2. ПРАВИЛА ДЛЯ КЛІЄНТА ---
+      if (role === "client") {
+        // Немає телефону -> на реєстрацію
+        if (!user.phone && location !== "/client-register" && location !== "/role-selector") {
+          setLocation("/client-register");
+          return;
+        }
+        // Є телефон і стоїть на вході -> в кабінет
+        if ((location === "/" || location === "/role-selector") && user.phone) {
+          setLocation("/client");
+        }
       }
 
-      // --- 3. ЛОГІКА ДЛЯ ВОДІЯ ---
-      if (role === "driver" && location === "/role-selector") {
-        setLocation("/driver");
+      // --- 3. ПРАВИЛА ДЛЯ ВОДІЯ ---
+      if (role === "driver") {
+        if (location === "/role-selector" || location === "/") {
+          setLocation("/driver");
+        }
       }
     }
   }, [user, role, isLoading, location, setLocation]);
