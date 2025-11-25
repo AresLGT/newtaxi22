@@ -23,9 +23,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   getAllDrivers(): Promise<User[]>;
+  getAllUsers(): Promise<User[]>; // <--- НОВИЙ МЕТОД
   registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null>;
   
-  // Finance methods (НОВЕ)
+  // Finance methods
   updateBalance(userId: string, amount: number): Promise<User | undefined>;
 
   // Order methods
@@ -42,7 +43,7 @@ export interface IStorage {
   releaseOrder(orderId: string): Promise<Order | undefined>;
   completeOrder(orderId: string): Promise<Order | undefined>;
 
-  // Tariffs methods (НОВЕ)
+  // Tariffs methods
   getTariffs(): Promise<Tariff[]>;
   updateTariff(type: string, basePrice: number, perKm: number): Promise<void>;
 
@@ -72,7 +73,7 @@ export class MemStorage implements IStorage {
   private chatMessages: Map<string, ChatMessage[]>;
   private ratings: Map<string, Rating>;
   private rateLimits: Map<string, number[]>;
-  private tariffs: Map<string, Tariff>; // Зберігання тарифів
+  private tariffs: Map<string, Tariff>;
 
   constructor() {
     this.users = new Map();
@@ -83,7 +84,7 @@ export class MemStorage implements IStorage {
     this.rateLimits = new Map();
     this.tariffs = new Map();
 
-    // Ініціалізація дефолтних тарифів
+    // Тарифи
     this.tariffs.set("taxi", { type: "taxi", basePrice: 100, perKm: 25 });
     this.tariffs.set("cargo", { type: "cargo", basePrice: 300, perKm: 40 });
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
@@ -92,7 +93,7 @@ export class MemStorage implements IStorage {
     // Адміни
     this.users.set("admin1", {
       id: "admin1", role: "admin", name: "Адміністратор", phone: "+380501111111",
-      telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0 // НОВЕ ПОЛЕ
+      telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
     });
     this.users.set("7677921905", {
       id: "7677921905", role: "admin", name: "Адміністратор", phone: null,
@@ -100,11 +101,10 @@ export class MemStorage implements IStorage {
     });
   }
 
-  // --- Users & Finance ---
+  // --- Users ---
   async getUser(id: string): Promise<User | undefined> { return this.users.get(id); }
   
   async createUser(insertUser: InsertUser): Promise<User> {
-    // Додаємо баланс 0 для нових юзерів
     const user: User = { ...insertUser, isBlocked: false, warnings: [], bonuses: [], balance: 0 };
     this.users.set(user.id, user);
     return user;
@@ -130,6 +130,12 @@ export class MemStorage implements IStorage {
   async getAllDrivers(): Promise<User[]> {
     return Array.from(this.users.values()).filter((user) => user.role === "driver");
   }
+
+  // --- НОВИЙ МЕТОД: Отримати всіх юзерів ---
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  // ---------------------------------------
 
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null> {
     const accessCode = await this.validateAccessCode(code);
@@ -173,8 +179,16 @@ export class MemStorage implements IStorage {
   }
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderId = randomUUID();
-    // Тут можна було б брати ціну з this.tariffs, але поки лишаємо як є для сумісності
-    const order: Order = { orderId, ...insertOrder, status: "pending", driverId: null, createdAt: new Date() };
+    // Беремо ціну з тарифів, якщо вона не передана
+    let price = insertOrder.price;
+    if (!price && insertOrder.type && insertOrder.distanceKm) {
+        const tariff = this.tariffs.get(insertOrder.type);
+        if (tariff) {
+            price = tariff.basePrice + Math.ceil(insertOrder.distanceKm * tariff.perKm);
+        }
+    }
+
+    const order: Order = { orderId, ...insertOrder, price, status: "pending", driverId: null, createdAt: new Date() };
     this.orders.set(orderId, order);
     return order;
   }
@@ -191,7 +205,6 @@ export class MemStorage implements IStorage {
     const driver = await this.getUser(driverId);
     if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) return undefined;
     
-    // Розрахунок фінальної ціни на основі тарифів з бази
     let finalPrice = order.price;
     if (distanceKm) {
        const tariff = this.tariffs.get(order.type);
@@ -223,7 +236,7 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- Access Codes & Chat (Без змін) ---
+  // --- Access Codes & Chat ---
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
     let code: string;
     let attempts = 0;
@@ -289,7 +302,7 @@ export class MemStorage implements IStorage {
     return badges.length > 0 ? badges.join(' ') : null;
   }
 
-  // Rate limit (Без змін)
+  // Rate limit
   async getRateLimitTimestamps(userId: string): Promise<number[]> { return this.rateLimits.get(userId) || []; }
   async saveRateLimitTimestamps(userId: string, timestamps: number[]): Promise<void> { this.rateLimits.set(userId, timestamps); }
   async cleanExpiredRateLimits(): Promise<void> {
