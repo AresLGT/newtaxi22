@@ -4,11 +4,9 @@ import {
   type Order,
   type InsertOrder,
   type AccessCode,
-  type AccessCode as AccessCodeType, // Alias to avoid naming conflict if needed
   type ChatMessage,
   type InsertChatMessage,
   type Rating,
-  type InsertRating,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -26,13 +24,13 @@ export interface IStorage {
   getActiveOrders(): Promise<Order[]>;
   getOrdersByClient(clientId: string): Promise<Order[]>;
   getOrdersByDriver(driverId: string): Promise<Order[]>;
-  // Новий метод для пошуку поточної поїздки водія
   getDriverCurrentOrder(driverId: string): Promise<Order | undefined>;
   
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined>;
   acceptOrder(orderId: string, driverId: string, distanceKm?: number): Promise<Order | undefined>;
-  completeOrder(orderId: string): Promise<Order | undefined>; // Додамо явний метод завершення
+  releaseOrder(orderId: string): Promise<Order | undefined>; // <--- НОВИЙ МЕТОД
+  completeOrder(orderId: string): Promise<Order | undefined>;
 
   // Access Code methods
   generateAccessCode(issuedBy: string): Promise<AccessCode>;
@@ -82,8 +80,7 @@ export class MemStorage implements IStorage {
       warnings: [],
       bonuses: [],
     });
-
-    // Add Telegram admin
+    
     this.users.set("7677921905", {
       id: "7677921905",
       role: "admin",
@@ -97,17 +94,10 @@ export class MemStorage implements IStorage {
   }
 
   // User methods
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
+  async getUser(id: string): Promise<User | undefined> { return this.users.get(id); }
+  
   async createUser(insertUser: InsertUser): Promise<User> {
-    const user: User = {
-      ...insertUser,
-      isBlocked: false,
-      warnings: [],
-      bonuses: [],
-    };
+    const user: User = { ...insertUser, isBlocked: false, warnings: [], bonuses: [] };
     this.users.set(user.id, user);
     return user;
   }
@@ -115,7 +105,6 @@ export class MemStorage implements IStorage {
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
-
     const updatedUser = { ...user, ...updates };
     this.users.set(id, updatedUser);
     return updatedUser;
@@ -125,54 +114,26 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).filter((user) => user.role === "driver");
   }
 
-  async registerDriverWithCode(
-    userId: string,
-    code: string,
-    name: string,
-    phone: string
-  ): Promise<User | null> {
+  async registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null> {
     const accessCode = await this.validateAccessCode(code);
-    if (!accessCode || accessCode.isUsed) {
-      return null;
-    }
+    if (!accessCode || accessCode.isUsed) return null;
 
     let user = await this.getUser(userId);
     if (!user) {
-      user = await this.createUser({
-        id: userId,
-        role: "driver",
-        name,
-        phone,
-        telegramAvatarUrl: null,
-      });
+      user = await this.createUser({ id: userId, role: "driver", name, phone, telegramAvatarUrl: null });
     } else {
-      user = await this.updateUser(userId, {
-        role: "driver",
-        name,
-        phone,
-      });
+      user = await this.updateUser(userId, { role: "driver", name, phone });
     }
-
-    if (user) {
-      await this.markCodeAsUsed(code, userId);
-    }
-
+    if (user) await this.markCodeAsUsed(code, userId);
     return user ?? null;
   }
 
   // Order methods
-  async getOrder(orderId: string): Promise<Order | undefined> {
-    return this.orders.get(orderId);
-  }
-
-  async getAllOrders(): Promise<Order[]> {
-    return Array.from(this.orders.values());
-  }
-
+  async getOrder(orderId: string): Promise<Order | undefined> { return this.orders.get(orderId); }
+  async getAllOrders(): Promise<Order[]> { return Array.from(this.orders.values()); }
+  
   async getActiveOrders(): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(
-      (order) => order.status === "pending"
-    );
+    return Array.from(this.orders.values()).filter((order) => order.status === "pending");
   }
 
   async getOrdersByClient(clientId: string): Promise<Order[]> {
@@ -183,25 +144,17 @@ export class MemStorage implements IStorage {
     return Array.from(this.orders.values()).filter((order) => order.driverId === driverId);
   }
 
-  // --- НОВИЙ МЕТОД ---
   async getDriverCurrentOrder(driverId: string): Promise<Order | undefined> {
-    // Шукаємо замовлення цього водія, яке "accepted" (в процесі) або "arrived" (прибув), але не completed
     return Array.from(this.orders.values()).find(
-      (order) => 
-        order.driverId === driverId && 
-        (order.status === "accepted" || order.status === "arrived" || order.status === "in_progress")
+      (order) => order.driverId === driverId && 
+      (order.status === "accepted" || order.status === "arrived" || order.status === "in_progress")
     );
   }
-  // -------------------
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const orderId = randomUUID();
     const order: Order = {
-      orderId,
-      ...insertOrder,
-      status: "pending",
-      driverId: null,
-      createdAt: new Date(),
+      orderId, ...insertOrder, status: "pending", driverId: null, createdAt: new Date(),
     };
     this.orders.set(orderId, order);
     return order;
@@ -210,7 +163,6 @@ export class MemStorage implements IStorage {
   async updateOrder(orderId: string, updates: Partial<Order>): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
-
     const updatedOrder = { ...order, ...updates };
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
@@ -221,28 +173,35 @@ export class MemStorage implements IStorage {
     if (!order || order.status !== "pending") return undefined;
 
     const driver = await this.getUser(driverId);
-    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) {
-      return undefined;
-    }
+    if (!driver || (driver.role !== "driver" && driver.role !== "admin") || driver.isBlocked) return undefined;
 
     const updatedOrder: Order = {
-      ...order,
-      driverId,
-      status: "accepted",
-      distanceKm: distanceKm ?? order.distanceKm,
+      ...order, driverId, status: "accepted", distanceKm: distanceKm ?? order.distanceKm,
     };
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
 
+  // --- НОВИЙ МЕТОД: Відмова водія ---
+  async releaseOrder(orderId: string): Promise<Order | undefined> {
+    const order = this.orders.get(orderId);
+    if (!order) return undefined;
+
+    // Повертаємо статус "pending" і очищаємо водія
+    const updatedOrder: Order = {
+      ...order,
+      status: "pending",
+      driverId: null, 
+    };
+    this.orders.set(orderId, updatedOrder);
+    return updatedOrder;
+  }
+  // ----------------------------------
+
   async completeOrder(orderId: string): Promise<Order | undefined> {
     const order = this.orders.get(orderId);
     if (!order) return undefined;
-    
-    const updatedOrder: Order = {
-      ...order,
-      status: "completed"
-    };
+    const updatedOrder: Order = { ...order, status: "completed" };
     this.orders.set(orderId, updatedOrder);
     return updatedOrder;
   }
@@ -251,155 +210,86 @@ export class MemStorage implements IStorage {
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
     let code: string;
     let attempts = 0;
-    const maxAttempts = 10;
-
     do {
       code = Math.random().toString(36).substring(2, 8).toUpperCase();
       attempts++;
-      if (attempts >= maxAttempts) {
-        code = randomUUID().substring(0, 8).toUpperCase();
-        break;
-      }
+      if (attempts >= 10) { code = randomUUID().substring(0, 8).toUpperCase(); break; }
     } while (this.accessCodes.has(code));
 
-    const accessCode: AccessCode = {
-      code,
-      isUsed: false,
-      issuedBy,
-      usedBy: null,
-      createdAt: new Date(),
-    };
+    const accessCode: AccessCode = { code, isUsed: false, issuedBy, usedBy: null, createdAt: new Date() };
     this.accessCodes.set(code, accessCode);
     return accessCode;
   }
 
-  async validateAccessCode(code: string): Promise<AccessCode | undefined> {
-    return this.accessCodes.get(code);
-  }
+  async validateAccessCode(code: string): Promise<AccessCode | undefined> { return this.accessCodes.get(code); }
 
   async markCodeAsUsed(code: string, userId: string): Promise<boolean> {
     const accessCode = this.accessCodes.get(code);
     if (!accessCode || accessCode.isUsed) return false;
-
-    const updatedCode = {
-      ...accessCode,
-      isUsed: true,
-      usedBy: userId,
-    };
+    const updatedCode = { ...accessCode, isUsed: true, usedBy: userId };
     this.accessCodes.set(code, updatedCode);
     return true;
   }
 
   // Chat methods
-  async getChatMessages(orderId: string): Promise<ChatMessage[]> {
-    return this.chatMessages.get(orderId) || [];
-  }
+  async getChatMessages(orderId: string): Promise<ChatMessage[]> { return this.chatMessages.get(orderId) || []; }
 
   async sendChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
     const id = randomUUID();
-    const message: ChatMessage = {
-      id,
-      ...insertMessage,
-      createdAt: new Date(),
-    };
-
+    const message: ChatMessage = { id, ...insertMessage, createdAt: new Date() };
     const messages = this.chatMessages.get(insertMessage.orderId) || [];
     messages.push(message);
     this.chatMessages.set(insertMessage.orderId, messages);
-
     return message;
   }
 
   // Rating methods
   async rateOrder(orderId: string, stars: number, comment?: string): Promise<boolean> {
     const order = this.orders.get(orderId);
-    if (!order || order.status !== "completed" || !order.driverId) {
-      return false;
-    }
+    if (!order || order.status !== "completed" || !order.driverId) return false;
+    const existingRating = Array.from(this.ratings.values()).find((rating) => rating.orderId === orderId);
+    if (existingRating) return false;
 
-    const existingRating = Array.from(this.ratings.values()).find(
-      (rating) => rating.orderId === orderId
-    );
-    if (existingRating) {
-      return false;
-    }
-
-    const normalizedStars = Math.min(5, Math.max(1, Math.floor(stars)));
     const ratingId = randomUUID();
     const rating: Rating = {
-      id: ratingId,
-      orderId,
-      driverId: order.driverId,
-      stars: normalizedStars,
-      comment: comment || null,
-      createdAt: new Date(),
+      id: ratingId, orderId, driverId: order.driverId, stars: Math.min(5, Math.max(1, Math.floor(stars))),
+      comment: comment || null, createdAt: new Date(),
     };
-
     this.ratings.set(ratingId, rating);
     return true;
   }
 
-  async getAllRatings(): Promise<Rating[]> {
-    return Array.from(this.ratings.values());
-  }
+  async getAllRatings(): Promise<Rating[]> { return Array.from(this.ratings.values()); }
 
   async getDriverStats(driverId: string): Promise<{completedOrders: number, totalRatings: number, averageRating: number}> {
     const completedOrders = Array.from(this.orders.values()).filter(
       (order) => order.driverId === driverId && order.status === "completed"
     );
-
-    const driverRatings = Array.from(this.ratings.values()).filter(
-      (rating) => rating.driverId === driverId
-    );
-
+    const driverRatings = Array.from(this.ratings.values()).filter((rating) => rating.driverId === driverId);
     const totalRatings = driverRatings.length;
-    const averageRating = totalRatings > 0
-      ? driverRatings.reduce((sum, r) => sum + r.stars, 0) / totalRatings
-      : 0;
-
-    return {
-      completedOrders: completedOrders.length,
-      totalRatings,
-      averageRating: Math.round(averageRating * 10) / 10,
-    };
+    const averageRating = totalRatings > 0 ? driverRatings.reduce((sum, r) => sum + r.stars, 0) / totalRatings : 0;
+    return { completedOrders: completedOrders.length, totalRatings, averageRating: Math.round(averageRating * 10) / 10 };
   }
 
   async getDriverBadges(driverId: string): Promise<string | null> {
     const stats = await this.getDriverStats(driverId);
     const badges: string[] = [];
-
     if (stats.averageRating >= 4.8) badges.push('⭐ Топ-водій');
     if (stats.completedOrders >= 100) badges.push('🏆 Легенда');
     if (stats.completedOrders >= 50) badges.push('🔥 Активний');
     if (stats.completedOrders >= 20 && stats.averageRating >= 4.5) badges.push('💎 Преміум');
     if (stats.totalRatings >= 50 && stats.averageRating === 5.0) badges.push('⚡ Ідеальний');
-
     return badges.length > 0 ? badges.join(' ') : null;
   }
 
   // Rate limit methods
-  async getRateLimitTimestamps(userId: string): Promise<number[]> {
-    return this.rateLimits.get(userId) || [];
-  }
-
-  async saveRateLimitTimestamps(userId: string, timestamps: number[]): Promise<void> {
-    this.rateLimits.set(userId, timestamps);
-  }
-
+  async getRateLimitTimestamps(userId: string): Promise<number[]> { return this.rateLimits.get(userId) || []; }
+  async saveRateLimitTimestamps(userId: string, timestamps: number[]): Promise<void> { this.rateLimits.set(userId, timestamps); }
   async cleanExpiredRateLimits(): Promise<void> {
     const now = Date.now();
-    const RATE_LIMIT_WINDOW = 60000; // 1 minute
-
     for (const [userId, timestamps] of this.rateLimits.entries()) {
-      const validTimestamps = timestamps.filter(
-        (timestamp) => now - timestamp < RATE_LIMIT_WINDOW
-      );
-
-      if (validTimestamps.length === 0) {
-        this.rateLimits.delete(userId);
-      } else {
-        this.rateLimits.set(userId, validTimestamps);
-      }
+      const validTimestamps = timestamps.filter((timestamp) => now - timestamp < 60000);
+      if (validTimestamps.length === 0) this.rateLimits.delete(userId); else this.rateLimits.set(userId, validTimestamps);
     }
   }
 }

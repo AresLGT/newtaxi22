@@ -93,10 +93,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
-  // Маршрут для отримання ПОТОЧНОГО замовлення водія
   app.get("/api/orders/driver/:driverId/current", async (req, res) => {
     const order = await storage.getDriverCurrentOrder(req.params.driverId);
-    // Повертаємо масив, щоб клієнту було зручно працювати
     res.json(order ? [order] : []);
   });
 
@@ -112,8 +110,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/orders/:id/accept", async (req, res) => {
     try {
-      console.log(`[DEBUG] Attempting to accept order ${req.params.id}. Body:`, req.body);
-      
       const schema = z.object({
         driverId: z.union([z.string(), z.number()]).transform((val) => String(val)),
         distanceKm: z.number().optional(),
@@ -121,10 +117,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = schema.parse(req.body);
 
-      // Auto-register driver check
       let driver = await storage.getUser(data.driverId);
       if (!driver) {
-         console.log(`[DEBUG] Driver ${data.driverId} not found, auto-creating.`);
          driver = await storage.createUser({
           id: data.driverId,
           role: "driver",
@@ -136,37 +130,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const order = await storage.acceptOrder(req.params.id, data.driverId, data.distanceKm);
       if (!order) {
-        console.error(`[ERROR] Order not found or cannot be accepted: ${req.params.id}`);
         return res.status(400).json({ error: "Cannot accept order" });
       }
 
-      console.log(`[SUCCESS] Order ${req.params.id} accepted by driver ${data.driverId}`);
       res.json(order);
     } catch (error: any) {
-      console.error("Error accepting order:", error);
       res.status(400).json({ error: error?.message || "Invalid request" });
     }
   });
 
-  // --- ВИПРАВЛЕНИЙ МАРШРУТ ЗАВЕРШЕННЯ ---
+  // --- НОВИЙ МАРШРУТ: Водій відмовляється від замовлення ---
+  app.post("/api/orders/:id/release", async (req, res) => {
+    try {
+      const updated = await storage.releaseOrder(req.params.id);
+      if (!updated) return res.status(404).json({ error: "Order not found" });
+      res.json(updated);
+    } catch (e) {
+      res.status(500).json({ error: "Error releasing order" });
+    }
+  });
+
+  // --- НОВИЙ МАРШРУТ: Клієнт скасовує замовлення ---
+  app.post("/api/orders/:id/cancel", async (req, res) => {
+    try {
+      const updated = await storage.updateOrder(req.params.id, { status: "cancelled" });
+      if (!updated) return res.status(404).json({ error: "Order not found" });
+      res.json(updated);
+    } catch (e) {
+      res.status(500).json({ error: "Error cancelling order" });
+    }
+  });
+
   app.post("/api/orders/:id/complete", async (req, res) => {
      try {
-       console.log(`[DEBUG] Attempting to complete order ${req.params.id}`);
        const updated = await storage.completeOrder(req.params.id);
-       
-       if (!updated) {
-         console.error(`[ERROR] Failed to complete order ${req.params.id} (not found)`);
-         return res.status(404).json({ error: "Order not found" });
-       }
-       
-       console.log(`[SUCCESS] Order ${req.params.id} completed`);
+       if (!updated) return res.status(404).json({ error: "Order not found" });
        res.json(updated);
      } catch (e) {
-       console.error(`[ERROR] Exception while completing order:`, e);
        res.status(500).json({ error: "Could not complete order" });
      }
   });
-  // --------------------------------------
 
   app.patch("/api/orders/:id", async (req, res) => {
     try {
@@ -197,25 +200,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(400).json({ error: "Invalid rating data" });
-    }
-  });
-
-  // Driver rating routes
-  app.get("/api/drivers/:id/stats", async (req, res) => {
-    try {
-      const stats = await storage.getDriverStats(req.params.id);
-      res.json(stats);
-    } catch (error) {
-      res.status(500).json({ error: "Cannot retrieve driver stats" });
-    }
-  });
-
-  app.get("/api/drivers/:id/badges", async (req, res) => {
-    try {
-      const badges = await storage.getDriverBadges(req.params.id);
-      res.json({ badges });
-    } catch (error) {
-      res.status(500).json({ error: "Cannot retrieve driver badges" });
     }
   });
 
@@ -255,47 +239,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/drivers/:id/warning", async (req, res) => {
+  // Driver stats & other routes...
+  app.get("/api/drivers/:id/stats", async (req, res) => {
     try {
-      const schema = z.object({
-        text: z.string(),
-      });
-      const data = schema.parse(req.body);
-
-      const driver = await storage.getUser(req.params.id);
-      if (!driver || driver.role !== "driver") {
-        return res.status(404).json({ error: "Driver not found" });
-      }
-
-      const warnings = driver.warnings || [];
-      const updated = await storage.updateUser(req.params.id, {
-        warnings: [...warnings, data.text],
-      });
-      res.json(updated);
+      const stats = await storage.getDriverStats(req.params.id);
+      res.json(stats);
     } catch (error) {
-      res.status(400).json({ error: "Cannot add warning" });
+      res.status(500).json({ error: "Cannot retrieve driver stats" });
     }
   });
 
-  app.post("/api/admin/drivers/:id/bonus", async (req, res) => {
+  app.get("/api/drivers/:id/badges", async (req, res) => {
     try {
-      const schema = z.object({
-        text: z.string(),
-      });
-      const data = schema.parse(req.body);
-
-      const driver = await storage.getUser(req.params.id);
-      if (!driver || driver.role !== "driver") {
-        return res.status(404).json({ error: "Driver not found" });
-      }
-
-      const bonuses = driver.bonuses || [];
-      const updated = await storage.updateUser(req.params.id, {
-        bonuses: [...bonuses, data.text],
-      });
-      res.json(updated);
+      const badges = await storage.getDriverBadges(req.params.id);
+      res.json({ badges });
     } catch (error) {
-      res.status(400).json({ error: "Cannot add bonus" });
+      res.status(500).json({ error: "Cannot retrieve driver badges" });
     }
   });
 

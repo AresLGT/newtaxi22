@@ -1,426 +1,272 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Key, Users, Ban, AlertTriangle, Award, Copy, Check } from "lucide-react";
-import { useLocation } from "wouter";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useUser } from "@/lib/use-user";
-import type { User, AccessCode } from "@shared/schema";
-
-const adminId = "admin1";
+import { 
+  Users, 
+  Car, 
+  Ban, 
+  CheckCircle, 
+  RefreshCw, 
+  Key,
+  Activity,
+  MapPin,
+  XCircle,
+  DollarSign
+} from "lucide-react";
+import type { User, Order, AccessCode } from "@shared/schema";
 
 export default function AdminDashboard() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { role, isLoading } = useUser();
-  
-  const [showCodeDialog, setShowCodeDialog] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [showWarningDialog, setShowWarningDialog] = useState(false);
-  const [showBonusDialog, setShowBonusDialog] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState<User | null>(null);
-  const [warningText, setWarningText] = useState("");
-  const [bonusText, setBonusText] = useState("");
 
-  const { data: drivers = [], isLoading: driversLoading } = useQuery<User[]>({
+  // 1. Завантаження даних
+  const { data: drivers = [] } = useQuery<User[]>({
     queryKey: ["/api/admin/drivers"],
-    refetchInterval: 5000,
   });
 
+  const { data: orders = [], isLoading: isOrdersLoading } = useQuery<Order[]>({
+    queryKey: ["/api/admin/orders/all"],
+    refetchInterval: 3000, // Живе оновлення кожні 3 сек
+  });
+
+  // --- МУТАЦІЇ (Дії адміна) ---
+
   const generateCodeMutation = useMutation({
-    mutationFn: async (): Promise<AccessCode> => {
-      const response = await apiRequest("POST", "/api/admin/generate-code", { adminId });
-      const code = await response.json();
-      console.log("📋 Code response:", code);
-      return code;
-    },
-    onSuccess: (code: AccessCode) => {
-      console.log("✅ Code generated:", code);
-      setGeneratedCode(code.code);
-      setShowCodeDialog(true);
-      setCopied(false);
-      toast({
-        title: "Код згенеровано",
-        description: `Код доступу: ${code.code}`,
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/generate-code", {
+        adminId: "admin1", 
       });
+      return await res.json();
     },
-    onError: (error) => {
-      console.error("❌ Error generating code:", error);
-      toast({
-        title: "Помилка",
-        description: "Не вдалося згенерувати код",
-        variant: "destructive",
-      });
+    onSuccess: (data: AccessCode) => {
+      setGeneratedCode(data.code);
+      toast({ title: "Код згенеровано", description: data.code });
     },
   });
 
   const blockDriverMutation = useMutation({
     mutationFn: async (driverId: string) => {
-      return await apiRequest("POST", `/api/admin/drivers/${driverId}/block`, {});
+      await apiRequest("POST", `/api/admin/drivers/${driverId}/block`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/drivers"] });
+      toast({ title: "Статус водія змінено" });
     },
   });
 
-  const addWarningMutation = useMutation({
-    mutationFn: async ({ driverId, text }: { driverId: string; text: string }) => {
-      return await apiRequest("POST", `/api/admin/drivers/${driverId}/warning`, { text });
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      await apiRequest("POST", `/api/admin/orders/${orderId}/cancel`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/drivers"] });
-      toast({
-        title: "Попередження видано",
-        description: `Попередження додано для ${selectedDriver?.name}`,
-      });
-      setShowWarningDialog(false);
-      setWarningText("");
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/orders/all"] });
+      toast({ title: "Замовлення скасовано" });
     },
   });
 
-  const addBonusMutation = useMutation({
-    mutationFn: async ({ driverId, text }: { driverId: string; text: string }) => {
-      return await apiRequest("POST", `/api/admin/drivers/${driverId}/bonus`, { text });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/drivers"] });
-      toast({
-        title: "Бонус видано",
-        description: `Бонус додано для ${selectedDriver?.name}`,
-      });
-      setShowBonusDialog(false);
-      setBonusText("");
-    },
-  });
-
-  // Redirect non-admins immediately
-  useEffect(() => {
-    if (!isLoading && role !== "admin") {
-      setLocation("/");
-    }
-  }, [role, isLoading, setLocation]);
-
-  // Don't render anything until we know the role
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-secondary-foreground">Завантаження...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render admin panel for non-admins
-  if (role !== "admin") {
-    return null;
-  }
-
-  const handleCopyCode = () => {
-    if (generatedCode) {
-      navigator.clipboard.writeText(generatedCode);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({
-        title: "Скопійовано",
-        description: "Код доступу скопійовано в буфер обміну",
-      });
-    }
-  };
-
-  const handleBlockDriver = (driver: User) => {
-    blockDriverMutation.mutate(driver.id);
-    toast({
-      title: driver.isBlocked ? "Розблоковано" : "Заблоковано",
-      description: `Водій ${driver.name} ${driver.isBlocked ? "розблокований" : "заблокований"}`,
-    });
-  };
-
-  const handleAddWarning = () => {
-    if (selectedDriver && warningText) {
-      addWarningMutation.mutate({ driverId: selectedDriver.id, text: warningText });
-    }
-  };
-
-  const handleAddBonus = () => {
-    if (selectedDriver && bonusText) {
-      addBonusMutation.mutate({ driverId: selectedDriver.id, text: bonusText });
-    }
-  };
+  // --- СТАТИСТИКА ---
+  const totalOrders = orders.length;
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'accepted' || o.status === 'in_progress');
+  const completedOrders = orders.filter(o => o.status === 'completed');
+  const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.price || 0), 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-10 bg-card border-b border-card-border">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <h1 className="text-lg font-semibold">Панель адміністратора</h1>
-          <p className="text-xs text-muted-foreground">Керування водіями та кодами доступу</p>
+    <div className="min-h-screen bg-background p-4 space-y-6 max-w-5xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Адмін Панель</h1>
+          <p className="text-muted-foreground">Керування службою UniWay</p>
+        </div>
+        <div className="flex gap-2">
+          <Badge variant="outline" className="h-8 px-3 text-sm">
+            {activeOrders.length} замовлень в ефірі
+          </Badge>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4">
-        <Tabs defaultValue="codes" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="codes" data-testid="tab-codes">
-              <Key className="w-4 h-4 mr-2" />
-              Коди доступу
-            </TabsTrigger>
-            <TabsTrigger value="drivers" data-testid="tab-drivers">
-              <Users className="w-4 h-4 mr-2" />
-              Водії
-            </TabsTrigger>
-          </TabsList>
+      {/* Вкладки */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 h-12">
+          <TabsTrigger value="overview">Огляд</TabsTrigger>
+          <TabsTrigger value="dispatcher">Диспетчер</TabsTrigger>
+          <TabsTrigger value="drivers">Водії</TabsTrigger>
+          <TabsTrigger value="settings">Налаштування</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="codes" className="space-y-4">
-            <Card className="border-card-border">
-              <CardHeader>
-                <CardTitle>Генерація коду доступу</CardTitle>
-                <CardDescription>
-                  Створіть одноразовий код для реєстрації нового водія
-                </CardDescription>
+        {/* Вкладка 1: ОГЛЯД (Статистика) */}
+        <TabsContent value="overview" className="space-y-4 mt-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Всього замовлень</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <Button
-                  className="w-full h-14 text-lg font-semibold"
-                  onClick={() => generateCodeMutation.mutate()}
-                  disabled={generateCodeMutation.isPending}
-                  data-testid="button-generate-code"
-                >
-                  <Key className="w-5 h-5 mr-2" />
-                  {generateCodeMutation.isPending ? "Генерація..." : "Згенерувати код"}
-                </Button>
+                <div className="text-2xl font-bold">{totalOrders}</div>
               </CardContent>
             </Card>
-          </TabsContent>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Активні зараз</CardTitle>
+                <Car className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-500">{activeOrders.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Водіїв в базі</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{drivers.length}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Оборот (прибл.)</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{totalRevenue} ₴</div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-          <TabsContent value="drivers" className="space-y-3">
-            {driversLoading ? (
-              <div className="space-y-3">
-                {[1, 2].map((i) => (
-                  <Card key={i} className="border-card-border">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start gap-4">
-                        <Skeleton className="w-12 h-12 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-5 w-32" />
-                          <Skeleton className="h-4 w-40" />
+        {/* Вкладка 2: ДИСПЕТЧЕРСЬКА (Керування замовленнями) */}
+        <TabsContent value="dispatcher" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Моніторинг замовлень</CardTitle>
+              <CardDescription>Список усіх активних та завершених поїздок</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {orders.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">Замовлень поки немає</div>
+                ) : (
+                  orders.map((order) => (
+                    <div key={order.orderId} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 border rounded-lg bg-card hover:bg-accent/5 transition-colors">
+                      <div className="space-y-1 mb-2 md:mb-0">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={
+                            order.status === 'pending' ? 'secondary' :
+                            order.status === 'accepted' || order.status === 'in_progress' ? 'default' :
+                            order.status === 'completed' ? 'outline' : 'destructive'
+                          }>
+                            {order.status.toUpperCase()}
+                          </Badge>
+                          <span className="font-mono text-xs text-muted-foreground">#{order.orderId.slice(0,6)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(order.createdAt!).toLocaleString('uk-UA')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm mt-1">
+                          <MapPin className="w-3 h-3 text-green-500" /> {order.from} 
+                          <span className="text-muted-foreground">→</span>
+                          <MapPin className="w-3 h-3 text-red-500" /> {order.to}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Клієнт ID: {order.clientId} | Водій: {order.driverId || "Не призначено"}
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      
+                      {/* Кнопки дій для активних замовлень */}
+                      {(order.status === 'pending' || order.status === 'accepted') && (
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => cancelOrderMutation.mutate(order.orderId)}
+                          disabled={cancelOrderMutation.isPending}
+                        >
+                          <XCircle className="w-4 h-4 mr-1" /> Скасувати
+                        </Button>
+                      )}
+                    </div>
+                  ))
+                )}
               </div>
-            ) : drivers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
-                  <Users className="w-8 h-8 text-muted-foreground opacity-40" />
-                </div>
-                <p className="text-base text-muted-foreground">Немає зареєстрованих водіїв</p>
-              </div>
-            ) : (
-              drivers.map((driver) => (
-                <Card key={driver.id} className="border-card-border" data-testid={`card-driver-${driver.id}`}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="w-12 h-12 flex-shrink-0">
-                        <AvatarImage src={driver.telegramAvatarUrl || ""} alt={driver.name || ""} />
-                        <AvatarFallback className="bg-primary text-primary-foreground">
-                          {driver.name?.charAt(0) || "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 space-y-3">
-                        <div>
-                          <div className="font-semibold flex items-center gap-2 flex-wrap">
-                            {driver.name}
-                            {driver.isBlocked && (
-                              <Badge variant="destructive" className="rounded-full px-2 py-0.5 text-xs">
-                                <Ban className="w-3 h-3 mr-1" />
-                                Заблокований
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">{driver.phone}</div>
-                        </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                        {((driver.warnings?.length ?? 0) > 0 || (driver.bonuses?.length ?? 0) > 0) && (
-                          <div className="flex flex-wrap gap-2">
-                            {(driver.warnings || []).map((warning, i) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="rounded-full px-2 py-1 text-xs"
-                              >
-                                <AlertTriangle className="w-3 h-3 mr-1 text-destructive" />
-                                {warning}
-                              </Badge>
-                            ))}
-                            {(driver.bonuses || []).map((bonus, i) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="rounded-full px-2 py-1 text-xs"
-                              >
-                                <Award className="w-3 h-3 mr-1 text-primary" />
-                                {bonus}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            variant={driver.isBlocked ? "default" : "destructive"}
-                            onClick={() => handleBlockDriver(driver)}
-                            data-testid={`button-block-${driver.id}`}
-                            disabled={blockDriverMutation.isPending}
-                          >
-                            <Ban className="w-3 h-3 mr-1" />
-                            {driver.isBlocked ? "Розблокувати" : "Заблокувати"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedDriver(driver);
-                              setShowWarningDialog(true);
-                            }}
-                            data-testid={`button-warning-${driver.id}`}
-                          >
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            Попередження
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setSelectedDriver(driver);
-                              setShowBonusDialog(true);
-                            }}
-                            data-testid={`button-bonus-${driver.id}`}
-                          >
-                            <Award className="w-3 h-3 mr-1" />
-                            Бонус
-                          </Button>
-                        </div>
+        {/* Вкладка 3: ВОДІЇ */}
+        <TabsContent value="drivers" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Керування водіями</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {drivers.map((driver) => (
+                  <div key={driver.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-2 h-2 rounded-full ${driver.isBlocked ? "bg-red-500" : "bg-green-500"}`} />
+                      <div>
+                        <div className="font-medium">{driver.name}</div>
+                        <div className="text-sm text-muted-foreground">{driver.phone}</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <Dialog open={showCodeDialog} onOpenChange={setShowCodeDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Код доступу згенеровано</DialogTitle>
-            <DialogDescription>
-              Передайте цей код новому водію для реєстрації
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-muted rounded-lg p-6 text-center">
-              <div className="text-3xl font-mono font-bold tracking-wider text-primary">
-                {generatedCode}
+                    <Button
+                      variant={driver.isBlocked ? "default" : "secondary"}
+                      size="sm"
+                      onClick={() => blockDriverMutation.mutate(driver.id)}
+                    >
+                      {driver.isBlocked ? (
+                        <><CheckCircle className="w-4 h-4 mr-2" /> Розблокувати</>
+                      ) : (
+                        <><Ban className="w-4 h-4 mr-2" /> Заблокувати</>
+                      )}
+                    </Button>
+                  </div>
+                ))}
               </div>
-            </div>
-            <Button
-              className="w-full h-12"
-              onClick={handleCopyCode}
-              data-testid="button-copy-code"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Скопійовано
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4 mr-2" />
-                  Копіювати код
-                </>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Вкладка 4: НАЛАШТУВАННЯ (Коди) */}
+        <TabsContent value="settings" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Реєстрація водіїв</CardTitle>
+              <CardDescription>Згенеруйте код доступу для нового водія</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Button 
+                  onClick={() => generateCodeMutation.mutate()} 
+                  disabled={generateCodeMutation.isPending}
+                  className="w-full md:w-auto"
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${generateCodeMutation.isPending ? 'animate-spin' : ''}`} />
+                  Згенерувати новий код
+                </Button>
+              </div>
+              
+              {generatedCode && (
+                <div className="p-4 bg-muted rounded-lg border border-primary/20 flex flex-col items-center animate-in fade-in">
+                  <div className="text-sm text-muted-foreground mb-1">Код доступу:</div>
+                  <div className="text-3xl font-mono font-bold tracking-widest text-primary select-all">
+                    {generatedCode}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Передайте цей код водію для реєстрації
+                  </div>
+                </div>
               )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showWarningDialog} onOpenChange={setShowWarningDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Видати попередження</DialogTitle>
-            <DialogDescription>
-              Додайте попередження для водія {selectedDriver?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="warning-text">Текст попередження</Label>
-              <Input
-                id="warning-text"
-                placeholder="Наприклад: Запізнення на замовлення"
-                value={warningText}
-                onChange={(e) => setWarningText(e.target.value)}
-                data-testid="input-warning-text"
-                className="h-12"
-              />
-            </div>
-            <Button
-              className="w-full h-12"
-              onClick={handleAddWarning}
-              disabled={!warningText || addWarningMutation.isPending}
-              data-testid="button-submit-warning"
-            >
-              {addWarningMutation.isPending ? "Обробка..." : "Додати попередження"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showBonusDialog} onOpenChange={setShowBonusDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Видати бонус</DialogTitle>
-            <DialogDescription>
-              Додайте позитивну відмітку для водія {selectedDriver?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="bonus-text">Текст бонусу</Label>
-              <Input
-                id="bonus-text"
-                placeholder="Наприклад: Відмінне обслуговування клієнта"
-                value={bonusText}
-                onChange={(e) => setBonusText(e.target.value)}
-                data-testid="input-bonus-text"
-                className="h-12"
-              />
-            </div>
-            <Button
-              className="w-full h-12"
-              onClick={handleAddBonus}
-              disabled={!bonusText || addBonusMutation.isPending}
-              data-testid="button-submit-bonus"
-            >
-              {addBonusMutation.isPending ? "Обробка..." : "Додати бонус"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
