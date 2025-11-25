@@ -34,7 +34,6 @@ export default function ClientHome() {
     driverName?: string;
   }>({ open: false, orderId: "" });
 
-  // Зберігаємо попередні статуси замовлень, щоб виявити зміни
   const prevOrdersRef = useRef<Record<string, string>>({});
 
   const { data: orders = [], isLoading } = useQuery<Order[]>({
@@ -48,22 +47,16 @@ export default function ClientHome() {
     refetchInterval: 3000, 
   });
 
-  // АВТОМАТИЧНЕ ВІДКРИТТЯ ОЦІНКИ
   useEffect(() => {
     orders.forEach(order => {
       const prevStatus = prevOrdersRef.current[order.orderId];
-      
-      // Якщо замовлення перейшло в статус "completed" прямо зараз
       if (prevStatus && prevStatus !== "completed" && order.status === "completed") {
-        // Відкриваємо діалог оцінки
         setRatingDialog({
           open: true,
           orderId: order.orderId,
-          driverName: "Водія" // Можна додати ім'я, якщо воно є в об'єкті
+          driverName: "Водія"
         });
       }
-      
-      // Оновлюємо збережений статус
       prevOrdersRef.current[order.orderId] = order.status;
     });
   }, [orders]);
@@ -138,16 +131,33 @@ export default function ClientHome() {
     o.status === "completed" || o.status === "cancelled"
   );
 
-  // Сортуємо завершені замовлення: найновіші зверху
   completedOrders.sort((a, b) => {
     return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="text-center space-y-2 py-6">
-          <h1 className="text-2xl font-bold text-foreground">Мої замовлення</h1>
+    <div className="min-h-screen bg-background">
+      
+      {/* ШАПКА З КНОПКОЮ ПРОФІЛЮ */}
+      <div className="sticky top-0 z-10 bg-card border-b border-card-border">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div>
+            <h1 className="font-bold text-lg">UniWay</h1>
+            <p className="text-xs text-muted-foreground">Ваше комфортне таксі</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation("/client/profile")}
+          >
+            <User className="w-6 h-6" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto p-4 space-y-6">
+        <div className="text-center space-y-2 pt-2">
+          <h2 className="text-2xl font-bold text-foreground">Мої замовлення</h2>
           <p className="text-sm text-muted-foreground">Керуйте вашими поїздками</p>
         </div>
 
@@ -294,10 +304,7 @@ export default function ClientHome() {
                               <div className="text-xs text-muted-foreground">
                                 {new Date(order.createdAt!).toLocaleString('uk-UA', {
                                   day: '2-digit',
-                                  month: '2-digit',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
+                                  month: '2-digit'
                                 })}
                               </div>
                             </div>

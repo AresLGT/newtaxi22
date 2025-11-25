@@ -8,7 +8,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import RoleSelector from "@/pages/role-selector";
 import ClientHome from "@/pages/client-home";
-import ClientRegister from "@/pages/client-register"; // <--- НЕ ЗАБУДЬТЕ ЦЕЙ ІМПОРТ
+import ClientRegister from "@/pages/client-register";
+import ClientProfile from "@/pages/client-profile"; // <--- 1. Імпорт
 import OrderForm from "@/pages/order-form";
 import DriverRegister from "@/pages/driver-register";
 import DriverDashboard from "@/pages/driver-dashboard";
@@ -27,7 +28,8 @@ function Router() {
       <Route path="/role-selector" component={RoleSelector} />
       
       <Route path="/client" component={ClientHome} />
-      <Route path="/client-register" component={ClientRegister} /> {/* Новий маршрут */}
+      <Route path="/client-register" component={ClientRegister} />
+      <Route path="/client/profile" component={ClientProfile} /> {/* <--- 2. Маршрут */}
       
       <Route path="/order/:type" component={OrderForm} />
       <Route path="/driver-register" component={DriverRegister} />
@@ -41,30 +43,25 @@ function Router() {
   );
 }
 
+// ... AppWrapper і App залишаються без змін ...
+// (для економії місця я не копіюю AppWrapper, бо там ми нічого не міняємо)
+
 function AppWrapper() {
   const [location, setLocation] = useLocation();
   const { user, role, isLoading } = useUser();
 
   useEffect(() => {
     if (!isLoading && user) {
-      
-      // --- ГОЛОВНА ПЕРЕВІРКА ---
-      // Якщо це Клієнт, і у нього НЕМАЄ телефону, і він НЕ на сторінці реєстрації...
       if (role === "client" && !user.phone && location !== "/client-register" && location !== "/role-selector") {
-        // ...примусово відправляємо його реєструватися!
         setLocation("/client-register");
         return;
       }
-      // -------------------------
-
-      // Інші стандартні редіректи
       if (role === "admin" && location !== "/admin") {
         setLocation("/admin");
       } 
       else if (role === "driver" && location === "/role-selector") {
         setLocation("/driver");
       }
-      // Якщо клієнт вже все заповнив, то з кореня кидаємо в кабінет
       else if (role === "client" && (location === "/" || location === "/role-selector") && user.phone) {
         setLocation("/client");
       }

@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { MapPin, Navigation, DollarSign, User, Plus, Calculator, CheckCircle2, MessageSquare } from "lucide-react";
+import { MapPin, Navigation, DollarSign, User, Plus, Calculator, CheckCircle2, MessageSquare, Phone } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { TARIFFS, calculatePrice, type TariffKey } from "@shared/tariffs";
-import type { Order } from "@shared/schema";
+import type { Order, User as UserType } from "@shared/schema";
 
 const orderTypeLabels = {
   taxi: "Таксі",
@@ -51,11 +51,15 @@ export default function DriverDashboard() {
     }
   }, [role, setLocation]);
 
-  // 1. Активні замовлення (пошук)
-  const { data: activeOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
+  // 1. Отримуємо всі активні замовлення
+  const { data: rawActiveOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
     refetchInterval: 2000,
   });
+
+  // --- ФІЛЬТРАЦІЯ ---
+  // Прибираємо зі списку замовлення, які створив САМ ВОДІЙ (щоб не бачити самого себе)
+  const activeOrders = rawActiveOrders.filter(order => order.clientId !== driverId);
 
   // 2. Поточне замовлення водія
   const { data: currentOrders = [], isLoading: isLoadingCurrent } = useQuery<Order[]>({
@@ -157,6 +161,9 @@ export default function DriverDashboard() {
           </CardHeader>
           <CardContent className="space-y-6 pt-6">
             
+            {/* Інформація про клієнта */}
+            <ClientInfoCard clientId={currentOrder.clientId} />
+
             {/* Маршрут */}
             <div className="space-y-4">
               <div className="flex gap-4 items-stretch">
@@ -402,6 +409,34 @@ export default function DriverDashboard() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// Компонент картки клієнта (доданий в кінці файлу)
+function ClientInfoCard({ clientId }: { clientId: string }) {
+  const { data: client, isLoading } = useQuery<UserType>({
+    queryKey: [`/api/users/${clientId}`],
+  });
+
+  if (isLoading) return <Skeleton className="h-20 w-full" />;
+
+  return (
+    <div className="bg-muted/50 p-3 rounded-lg border border-border flex items-center gap-3">
+      <div className="bg-primary/20 p-2.5 rounded-full">
+        <User className="w-6 h-6 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground font-bold uppercase">Клієнт</p>
+        <p className="font-bold text-lg truncate">{client?.name || "Невідомий"}</p>
+      </div>
+      {client?.phone && (
+        <Button size="icon" className="rounded-full bg-green-600 hover:bg-green-700 h-10 w-10" asChild>
+          <a href={`tel:${client.phone.replace(/[^\d+]/g, '')}`}>
+            <Phone className="w-5 h-5 text-white" />
+          </a>
+        </Button>
+      )}
     </div>
   );
 }

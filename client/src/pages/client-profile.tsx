@@ -1,0 +1,164 @@
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft, User } from "lucide-react";
+import { useLocation } from "wouter";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/lib/use-user";
+import type { User as UserType } from "@shared/schema";
+
+const profileSchema = z.object({
+  name: z.string().min(2, "Ім'я має містити мінімум 2 символи"),
+  phone: z.string().min(10, "Вкажіть коректний номер телефону"),
+});
+
+export default function ClientProfile() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const { userId } = useUser();
+
+  const { data: user, isLoading } = useQuery<UserType>({
+    queryKey: [`/api/users/${userId}`],
+  });
+
+  const form = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+    },
+  });
+
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.name || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user, form]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof profileSchema>) => {
+      const response = await apiRequest("PATCH", `/api/users/${userId}`, data);
+      if (!response.ok) throw new Error("Failed to update profile");
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Профіль оновлено",
+        description: "Зміни успішно збережено",
+      });
+      setLocation("/client"); // Повертаємось в меню клієнта
+    },
+    onError: () => {
+      toast({
+        title: "Помилка",
+        description: "Не вдалося оновити профіль",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof profileSchema>) => {
+    updateProfileMutation.mutate(data);
+  };
+
+  if (isLoading) return <div className="p-4 text-center">Завантаження...</div>;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-10 bg-card border-b border-card-border">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setLocation("/client")}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold">Мій профіль</h1>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto p-4">
+        <Card className="border-card-border">
+          <CardHeader>
+            <CardTitle>Ваші дані</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex justify-center">
+              <Avatar className="w-24 h-24">
+                <AvatarImage src={user?.telegramAvatarUrl || ""} alt="Аватар" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-2xl">
+                  <User className="w-12 h-12" />
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ім'я *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ваше ім'я"
+                          {...field}
+                          className="text-base h-12"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Номер телефону *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="tel"
+                          placeholder="+380 XX XXX XX XX"
+                          {...field}
+                          className="text-base h-12"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <Button
+                  type="submit"
+                  className="w-full h-14 text-lg font-semibold"
+                  disabled={updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending ? "Збереження..." : "Зберегти зміни"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
