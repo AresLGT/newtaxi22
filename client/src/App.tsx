@@ -9,7 +9,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import RoleSelector from "@/pages/role-selector";
 import ClientHome from "@/pages/client-home";
 import ClientRegister from "@/pages/client-register";
-import ClientProfile from "@/pages/client-profile"; // <--- 1. Імпорт
+import ClientProfile from "@/pages/client-profile";
 import OrderForm from "@/pages/order-form";
 import DriverRegister from "@/pages/driver-register";
 import DriverDashboard from "@/pages/driver-dashboard";
@@ -29,7 +29,7 @@ function Router() {
       
       <Route path="/client" component={ClientHome} />
       <Route path="/client-register" component={ClientRegister} />
-      <Route path="/client/profile" component={ClientProfile} /> {/* <--- 2. Маршрут */}
+      <Route path="/client/profile" component={ClientProfile} />
       
       <Route path="/order/:type" component={OrderForm} />
       <Route path="/driver-register" component={DriverRegister} />
@@ -43,27 +43,38 @@ function Router() {
   );
 }
 
-// ... AppWrapper і App залишаються без змін ...
-// (для економії місця я не копіюю AppWrapper, бо там ми нічого не міняємо)
-
 function AppWrapper() {
   const [location, setLocation] = useLocation();
   const { user, role, isLoading } = useUser();
 
   useEffect(() => {
     if (!isLoading && user) {
+      
+      // --- 1. ПРАВИЛА ДЛЯ АДМІНА ---
+      if (role === "admin") {
+        // Якщо адмін просто відкрив додаток (корінь) -> відправляємо в панель
+        if (location === "/" || location === "/role-selector") {
+          setLocation("/admin");
+        }
+        // ВАЖЛИВО: Якщо адмін пішов у /driver або /client - ми йому НЕ ЗАВАЖАЄМО
+        return; 
+      }
+
+      // --- 2. ПРАВИЛА ДЛЯ КЛІЄНТА ---
+      // Якщо клієнт без телефону -> на реєстрацію
       if (role === "client" && !user.phone && location !== "/client-register" && location !== "/role-selector") {
         setLocation("/client-register");
         return;
       }
-      if (role === "admin" && location !== "/admin") {
-        setLocation("/admin");
-      } 
-      else if (role === "driver" && location === "/role-selector") {
-        setLocation("/driver");
-      }
-      else if (role === "client" && (location === "/" || location === "/role-selector") && user.phone) {
+      
+      // Якщо клієнт з телефоном зайшов на старт -> в кабінет
+      if (role === "client" && (location === "/" || location === "/role-selector") && user.phone) {
         setLocation("/client");
+      }
+
+      // --- 3. ПРАВИЛА ДЛЯ ВОДІЯ ---
+      if (role === "driver" && location === "/role-selector") {
+        setLocation("/driver");
       }
     }
   }, [user, role, isLoading, location, setLocation]);
