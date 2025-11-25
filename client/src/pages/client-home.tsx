@@ -17,7 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Order, User as UserType } from "@shared/schema";
 
-// ВАШ ID АДМІНА (щоб бачити кнопку навіть у режимі клієнта)
+// ID АДМІНА (залишаємо, але кнопка тепер доступна всім)
 const ADMIN_ID = "7677921905";
 
 export default function ClientHome() {
@@ -32,7 +32,6 @@ export default function ClientHome() {
     driverName?: string;
   }>({ open: false, orderId: "" });
 
-  // Стан для підтримки
   const [supportOpen, setSupportOpen] = useState(false);
   const [supportMsg, setSupportMsg] = useState("");
 
@@ -49,7 +48,6 @@ export default function ClientHome() {
     refetchInterval: 3000, 
   });
 
-  // Мутація: Скасувати замовлення
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const response = await apiRequest("POST", `/api/orders/${orderId}/cancel`);
@@ -61,7 +59,6 @@ export default function ClientHome() {
     },
   });
 
-  // Мутація: Надіслати в підтримку
   const sendSupportMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/support", { userId, message: supportMsg });
@@ -76,7 +73,6 @@ export default function ClientHome() {
     }
   });
 
-  // Відкриття діалогу оцінки при завершенні
   useEffect(() => {
     orders.forEach(order => {
       const prevStatus = prevOrdersRef.current[order.orderId];
@@ -130,12 +126,12 @@ export default function ClientHome() {
           <div><h1 className="font-bold text-lg">UniWay</h1><p className="text-xs text-muted-foreground">Ваше комфортне таксі</p></div>
           
           <div className="flex gap-2">
-            {/* Кнопка Адміна (Тільки для вас) */}
-            {(role === "admin" || String(userId) === ADMIN_ID) && (
-              <Button variant="outline" size="icon" onClick={() => setLocation("/admin")} className="border-red-500 text-red-500 hover:bg-red-50">
-                <Shield className="w-5 h-5" />
-              </Button>
-            )}
+            
+            {/* КНОПКА АДМІНА - ТЕПЕР ВИДИМА ЗАВЖДИ */}
+            <Button variant="outline" size="icon" onClick={() => setLocation("/admin")} className="border-red-500 text-red-500 hover:bg-red-50">
+              <Shield className="w-5 h-5" />
+            </Button>
+
             <Button variant="ghost" size="icon" onClick={() => setLocation("/client/profile")}>
               <User className="w-6 h-6" />
             </Button>
@@ -149,7 +145,6 @@ export default function ClientHome() {
           <p className="text-sm text-muted-foreground">Керуйте вашими поїздками</p>
         </div>
 
-        {/* Меню створення */}
         <Card>
           <CardHeader><CardTitle className="text-lg">Створити нове замовлення</CardTitle></CardHeader>
           <CardContent>
@@ -171,7 +166,6 @@ export default function ClientHome() {
           <div className="text-center py-8 text-muted-foreground">Завантаження замовлень...</div>
         ) : (
           <>
-            {/* Активні */}
             {activeOrders.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Активні замовлення</h2>
@@ -196,7 +190,6 @@ export default function ClientHome() {
                           <div className="flex items-center gap-2 text-sm bg-muted p-2 rounded"><DollarSign className="w-4 h-4 text-primary" /><span className="font-bold text-lg">{order.price} грн</span>{order.distanceKm && <span className="text-muted-foreground text-xs ml-auto">{order.distanceKm.toFixed(1)} км</span>}</div>
                         )}
                         <Separator />
-                        
                         {order.status === "pending" && (
                           <div className="space-y-3">
                             <div className="flex items-center gap-2 text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-3 rounded-lg animate-pulse">
@@ -218,7 +211,6 @@ export default function ClientHome() {
               </div>
             )}
 
-            {/* Завершені */}
             {completedOrders.length > 0 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold">Завершені замовлення</h2>
@@ -242,16 +234,9 @@ export default function ClientHome() {
                 })}
               </div>
             )}
-
-            {activeOrders.length === 0 && completedOrders.length === 0 && (
-              <Card>
-                <CardContent className="py-12 text-center"><div className="text-muted-foreground space-y-2"><p className="text-lg font-medium">У вас ще немає замовлень</p><p className="text-sm">Створіть своє перше замовлення вище</p></div></CardContent>
-              </Card>
-            )}
           </>
         )}
 
-        {/* КНОПКА ПІДТРИМКИ */}
         <div className="pt-4">
           <Button variant="outline" className="w-full h-12" onClick={() => setSupportOpen(true)}>
             <MessageCircle className="w-4 h-4 mr-2" /> Написати в підтримку
@@ -260,10 +245,8 @@ export default function ClientHome() {
 
       </div>
 
-      {/* Діалог оцінки */}
       <RatingDialog open={ratingDialog.open} onOpenChange={(open) => setRatingDialog({ ...ratingDialog, open })} orderId={ratingDialog.orderId} driverName={ratingDialog.driverName} onSuccess={handleRatingSuccess} />
 
-      {/* Діалог підтримки */}
       <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>Підтримка UniWay</DialogTitle><DialogDescription>Опишіть вашу проблему або пропозицію</DialogDescription></DialogHeader>
@@ -279,7 +262,7 @@ export default function ClientHome() {
 
 function DriverInfoSection({ driverId, orderId, setLocation, isInProgress }: any) {
   const { data: driver, isLoading } = useQuery<UserType>({ queryKey: [`/api/users/${driverId}`] });
-  if (isLoading) return <div>Завантаження...</div>;
+  if (isLoading) return <div className="text-sm text-muted-foreground">Завантаження водія...</div>;
   const getCleanPhone = (phone: string) => phone.replace(/[^\d+]/g, '');
   return (
     <div className="space-y-3 pt-2">
