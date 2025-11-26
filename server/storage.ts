@@ -104,7 +104,7 @@ export class MemStorage implements IStorage {
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
     this.tariffs.set("towing", { type: "towing", basePrice: 500, perKm: 50 });
 
-    // Адміни
+    // Адміни (Тимчасові, поки сервер працює)
     this.users.set("admin1", {
       id: "admin1", role: "admin", name: "Адміністратор", phone: "+380501111111",
       telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
@@ -140,18 +140,44 @@ export class MemStorage implements IStorage {
   async getAllDrivers(): Promise<User[]> { return Array.from(this.users.values()).filter((user) => user.role === "driver"); }
   async getAllUsers(): Promise<User[]> { return Array.from(this.users.values()); }
   
+  // --- ВИПРАВЛЕНА ФУНКЦІЯ РЕЄСТРАЦІЇ ВОДІЯ ---
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string): Promise<User | null> {
-    const accessCode = await this.validateAccessCode(code);
-    if (!accessCode || accessCode.isUsed) return null;
+    // 1. Нормалізація коду (видаляємо пробіли, робимо CAPS LOCK)
+    const cleanCode = code.trim().toUpperCase();
+    
+    console.log(`[AUTH] Спроба реєстрації ID: ${userId}, Введений код: '${cleanCode}'`);
+
+    // 2. Перевірка коду
+    const accessCode = await this.validateAccessCode(cleanCode);
+    
+    if (!accessCode) {
+      console.log(`[AUTH] Помилка: Код '${cleanCode}' не існує.`);
+      console.log(`[AUTH] Доступні коди в пам'яті:`, Array.from(this.accessCodes.keys()));
+      return null;
+    }
+
+    if (accessCode.isUsed) {
+      console.log(`[AUTH] Помилка: Код '${cleanCode}' вже використаний.`);
+      return null;
+    }
+
+    // 3. Створення або оновлення користувача
     let user = await this.getUser(userId);
     if (!user) {
       user = await this.createUser({ id: userId, role: "driver", name, phone, telegramAvatarUrl: null });
     } else {
       user = await this.updateUser(userId, { role: "driver", name, phone });
     }
-    if (user) await this.markCodeAsUsed(code, userId);
+
+    // 4. Позначення коду як використаного
+    if (user) {
+      await this.markCodeAsUsed(cleanCode, userId);
+      console.log(`[AUTH] Успіх! Користувач ${name} став водієм.`);
+    }
+    
     return user ?? null;
   }
+  // -------------------------------------------
 
   // --- Tariffs ---
   async getTariffs(): Promise<Tariff[]> { return Array.from(this.tariffs.values()); }
@@ -235,7 +261,7 @@ export class MemStorage implements IStorage {
     return updatedOrder;
   }
 
-  // --- РЕАЛІЗАЦІЯ НОВИХ МЕТОДІВ ДЛЯ ПОВІДОМЛЕНЬ ---
+  // --- МЕТОДИ ДЛЯ ПОВІДОМЛЕНЬ ---
   async addOrderNotification(orderId: string, chatId: string, messageId: number): Promise<void> {
     const notifications = this.orderNotifications.get(orderId) || [];
     notifications.push({ chatId, messageId });
@@ -245,17 +271,32 @@ export class MemStorage implements IStorage {
   async getOrderNotifications(orderId: string): Promise<NotificationRecord[]> {
     return this.orderNotifications.get(orderId) || [];
   }
-  // ------------------------------------------------
+  // ------------------------------
 
   // Access Code & Chat
   async generateAccessCode(issuedBy: string): Promise<AccessCode> {
-    let code: string; let attempts = 0;
-    do { code = Math.random().toString(36).substring(2, 8).toUpperCase(); attempts++; if (attempts >= 10) { code = randomUUID().substring(0, 8).toUpperCase(); break; } } while (this.accessCodes.has(code));
+    let code: string; 
+    let attempts = 0;
+    do { 
+      // Генеруємо код і ОДРАЗУ робимо його великими літерами
+      code = Math.random().toString(36).substring(2, 8).toUpperCase(); 
+      attempts++; 
+      if (attempts >= 10) { 
+        code = randomUUID().substring(0, 8).toUpperCase(); 
+        break; 
+      } 
+    } while (this.accessCodes.has(code));
+    
     const accessCode: AccessCode = { code, isUsed: false, issuedBy, usedBy: null, createdAt: new Date() };
     this.accessCodes.set(code, accessCode);
+    console.log(`[AUTH] Згенеровано новий код: ${code}`); // Лог для адміна
     return accessCode;
   }
-  async validateAccessCode(code: string): Promise<AccessCode | undefined> { return this.accessCodes.get(code); }
+
+  async validateAccessCode(code: string): Promise<AccessCode | undefined> { 
+    return this.accessCodes.get(code); 
+  }
+
   async markCodeAsUsed(code: string, userId: string): Promise<boolean> {
     const accessCode = this.accessCodes.get(code);
     if (!accessCode || accessCode.isUsed) return false;
@@ -263,6 +304,7 @@ export class MemStorage implements IStorage {
     this.accessCodes.set(code, updatedCode);
     return true;
   }
+  
   async getChatMessages(orderId: string): Promise<ChatMessage[]> { return this.chatMessages.get(orderId) || []; }
   async sendChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
     const id = randomUUID();
