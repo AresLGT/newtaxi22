@@ -193,13 +193,13 @@ export default function ClientHome() {
   );
 }
 
+// --- НОВИЙ КОМПОНЕНТ ІНФО ПРО ВОДІЯ (БЕЗ ІКОНКИ В ПОСИЛАННІ) ---
 function DriverInfoSection({ driverId, orderId, setLocation, isInProgress }: { driverId: string, orderId: string, setLocation: any, isInProgress: boolean }) {
   const { data: driver, isLoading } = useQuery<UserType>({ queryKey: [`/api/users/${driverId}`] });
   
   if (isLoading) return <div>Завантаження...</div>;
 
   const hasPhone = driver?.phone && driver.phone.length > 5;
-  // Очищаємо телефон
   const cleanPhone = hasPhone ? "+" + driver!.phone!.replace(/\D/g, '') : "";
 
   return (
@@ -209,19 +209,17 @@ function DriverInfoSection({ driverId, orderId, setLocation, isInProgress }: { d
           <div className="bg-primary rounded-full p-2 text-primary-foreground"><User className="w-5 h-5" /></div>
           <div className="flex-1"><div className="font-bold text-base">{isInProgress ? "Виконується поїздка" : "Водій прямує до вас"}</div>{driver?.name && <div className="text-sm text-muted-foreground">{driver.name}</div>}</div>
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          {/* ВИПРАВЛЕНА КНОПКА ДЗВІНКА */}
+        
+        <div className="flex flex-col gap-3 mt-3">
+          {/* ТІЛЬКИ НОМЕР БЕЗ ІКОНКИ */}
           {hasPhone ? (
-            <a 
-              href={`tel:${cleanPhone}`}
-              className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 px-4 py-2 w-full"
-            >
-              <Phone className="w-4 h-4 mr-2" />Дзвонити
-            </a>
+            <div className="text-center">
+               <a href={`tel:${cleanPhone}`} className="block text-green-600 font-bold text-xl py-2 hover:underline">
+                  {driver!.phone}
+               </a>
+            </div>
           ) : (
-            <Button className="w-full" disabled variant="outline">
-               <Phone className="w-4 h-4 mr-2" /> Немає тел.
-            </Button>
+            <div className="text-center text-sm text-muted-foreground py-1">Номер приховано</div>
           )}
 
           <Button className="w-full" variant="outline" onClick={() => setLocation(`/chat/${orderId}`)}><MessageSquare className="w-4 h-4 mr-2" />Чат</Button>

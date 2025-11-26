@@ -318,6 +318,7 @@ export default function DriverDashboard() {
   );
 }
 
+// --- НОВИЙ КОМПОНЕНТ КАРТКИ КЛІЄНТА (БЕЗ ІКОНКИ В ПОСИЛАННІ) ---
 function ClientInfoCard({ clientId }: { clientId: string }) {
   const { data: client, isLoading } = useQuery<UserType>({
     queryKey: [`/api/users/${clientId}`],
@@ -326,26 +327,22 @@ function ClientInfoCard({ clientId }: { clientId: string }) {
   if (isLoading) return <Skeleton className="h-20 w-full" />;
 
   const hasPhone = client?.phone && client.phone.length > 5;
-  // Очищаємо телефон
   const cleanPhone = hasPhone ? "+" + client!.phone!.replace(/\D/g, '') : "";
 
   return (
     <div className="bg-muted/50 p-3 rounded-lg border border-border flex items-center gap-3">
-      <div className="bg-primary/20 p-2.5 rounded-full"><User className="w-6 h-6 text-primary" /></div>
+      <div className="bg-primary/20 p-2.5 rounded-full self-start"><User className="w-6 h-6 text-primary" /></div>
       <div className="flex-1 min-w-0">
         <p className="text-xs text-muted-foreground font-bold uppercase">Клієнт</p>
         <p className="font-bold text-lg truncate">{client?.name || "Невідомий"}</p>
+        
+        {/* ТІЛЬКИ НОМЕР БЕЗ ІКОНКИ */}
+        {hasPhone && (
+          <a href={`tel:${cleanPhone}`} className="block text-green-600 font-bold text-lg mt-1 hover:underline">
+             {client!.phone}
+          </a>
+        )}
       </div>
-      
-      {/* ВИПРАВЛЕНА КНОПКА ДЗВІНКА */}
-      {hasPhone && (
-        <a 
-          href={`tel:${cleanPhone}`}
-          className="inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 w-10 shrink-0"
-        >
-          <Phone className="w-5 h-5 text-white" />
-        </a>
-      )}
     </div>
   );
 }
