@@ -9,12 +9,11 @@ import {
 } from "@shared/schema";
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 
-// --- НАЛАШТУВАННЯ ---
-// ВАЖЛИВО: Переконайся, що тут твоя актуальна адреса на Railway
+// --- ВАЖЛИВО: ТВОЄ ПОСИЛАННЯ НА WEB APP ---
 const WEBAPP_URL = "https://newtaxi22-production.up.railway.app"; 
 
-// Функція відправки
-async function sendTelegramMessage(chatId: string, text: string, openWebApp: boolean = false) {
+// Функція відправки повідомлень
+async function sendTelegramMessage(chatId: string, text: string, type: 'text' | 'button' = 'text') {
   const token = process.env.BOT_TOKEN;
   if (!token) return null;
 
@@ -24,9 +23,12 @@ async function sendTelegramMessage(chatId: string, text: string, openWebApp: boo
     parse_mode: 'HTML'
   };
 
-  if (openWebApp) {
+  // Якщо це привітання або успішна реєстрація — додаємо кнопку
+  if (type === 'button') {
     body.reply_markup = {
-      inline_keyboard: [[{ text: "↗️ Прийняти замовлення", web_app: { url: `${WEBAPP_URL}/driver` } }]]
+      inline_keyboard: [[
+        { text: "🚖 Відкрити додаток", web_app: { url: `${WEBAPP_URL}/driver` } }
+      ]]
     };
   }
 
@@ -56,43 +58,43 @@ async function deleteTelegramMessage(chatId: string, messageId: number) {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
-  // --- 1. ГОЛОВНИЙ МАРШРУТ ДЛЯ TELEGRAM (WEBHOOK) ---
-  // Сюди Телеграм буде надсилати всі повідомлення з чату
+  // --- WEBHOOK (ОБРОБКА ПОВІДОМЛЕНЬ) ---
   app.post("/api/bot/webhook", async (req, res) => {
     try {
       const update = req.body;
       
-      // Перевіряємо, чи це текстове повідомлення
       if (update.message && update.message.text) {
         const chatId = update.message.chat.id.toString();
-        const text = update.message.text.trim(); // Текст, який ввів юзер (потенційний код)
+        const text = update.message.text.trim();
         const firstName = update.message.from.first_name || "Driver";
 
-        console.log(`[BOT] Отримано повідомлення від ${chatId}: ${text}`);
+        console.log(`[BOT] Отримано: ${text} від ${chatId}`);
 
-        // Спроба використати це як код водія
-        // Оскільки ми не знаємо номер телефону з простого тексту, пишемо заглушку
+        // 1. ОБРОБКА КОМАНДИ /start
+        if (text === "/start") {
+           await sendTelegramMessage(chatId, `👋 <b>Привіт, ${firstName}!</b>\n\nЯ бот таксі сервісу.\n\n🔑 <b>Якщо ви водій:</b> надішліть мені код доступу, який вам видав адміністратор.\n📱 <b>Якщо ви вже зареєстровані:</b> просто натисніть кнопку нижче.`, 'button');
+           return res.sendStatus(200);
+        }
+
+        // 2. СПРОБА РЕЄСТРАЦІЇ (ЯКЩО ЦЕ НЕ /start)
         const result = await storage.registerDriverWithCode(chatId, text, firstName, "TelegramChat");
 
         if (result) {
           // Успіх!
-          await sendTelegramMessage(chatId, `✅ <b>Вітаємо! Ви стали водієм.</b>\n\nТепер ви можете приймати замовлення через додаток.\n\nНатисніть кнопку Menu або відкрийте Web App.`);
+          await sendTelegramMessage(chatId, `✅ <b>Вітаємо! Ви стали водієм.</b>\n\nТепер ви маєте доступ до замовлень.`, 'button');
         } else {
-          // Якщо це схоже на спробу ввести код (довжина > 3), але код невірний
-          if (text.length > 3 && text.length < 20) {
-             await sendTelegramMessage(chatId, `❌ <b>Код невірний або вже використаний.</b>\nСпробуйте ще раз або зверніться до адміна.`);
-          } else if (text === "/start") {
-             await sendTelegramMessage(chatId, `👋 Привіт! Якщо у вас є код водія, просто надішліть його сюди повідомленням.`);
+          // Якщо код не підійшов, і це не коротке слово "привіт"
+          if (text.length > 4) {
+             await sendTelegramMessage(chatId, `❌ <b>Код не знайдено.</b>\nПеревірте правильність введення або зверніться до адміністратора.`);
           }
         }
       }
-      res.sendStatus(200); // Обов'язково відповідаємо Телеграму "ОК"
+      res.sendStatus(200);
     } catch (e) {
       console.error("Webhook Error:", e);
       res.sendStatus(500);
     }
   });
-  // ---------------------------------------------------
 
   // User routes
   app.get("/api/users/:id", async (req, res) => {
@@ -121,18 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { res.status(400).json({ error: "Invalid update data" }); }
   });
 
-  // Залишаємо старий роут на випадок, якщо колись запрацює через WebApp
-  app.post("/api/users/register-driver", async (req, res) => {
-    try {
-      const schema = z.object({ userId: z.string(), code: z.string(), name: z.string(), phone: z.string() });
-      const data = schema.parse(req.body);
-      const user = await storage.registerDriverWithCode(data.userId, data.code, data.name, data.phone);
-      if (!user) return res.status(400).json({ error: "Invalid code" });
-      res.status(201).json(user);
-    } catch (error) { res.status(400).json({ error: "Invalid data" }); }
-  });
-
-  // Admin, Tariffs, Finance, Reviews, Broadcast
+  // Admin, Tariffs, Finance, Reviews
   app.get("/api/admin/tariffs", async (req, res) => { const t = await storage.getTariffs(); res.json(t); });
   app.post("/api/admin/tariffs", async (req, res) => { try { const d = req.body; await storage.updateTariff(d.type, d.basePrice, d.perKm); res.json({ success: true }); } catch { res.status(400).json({ error: "Error" }); } });
   app.post("/api/admin/finance/update", async (req, res) => { try { const d = req.body; const u = await storage.updateBalance(d.userId, d.amount); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(400).json({}); } });
@@ -155,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/orders/driver/:driverId/current", async (req, res) => { const o = await storage.getDriverCurrentOrder(req.params.driverId); res.json(o ? [o] : []); });
   app.get("/api/admin/orders/all", async (req, res) => { const o = await storage.getAllOrders(); o.sort((a, b) => new Date(b.createdAt||0).getTime() - new Date(a.createdAt||0).getTime()); res.json(o); });
 
-  // --- СТВОРЕННЯ ЗАМОВЛЕННЯ ---
+  // Create Order
   app.post("/api/orders", rateLimitMiddleware, async (req, res) => {
     try {
       const data = insertOrderSchema.parse(req.body);
@@ -167,7 +158,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const driver of drivers) {
         if (driver.id && /^\d+$/.test(driver.id) && !driver.isBlocked && driver.id !== order.clientId) {
-           const result = await sendTelegramMessage(driver.id, orderText, true);
+           // При новому замовленні теж показуємо кнопку, щоб водій міг швидко перейти
+           const result = await sendTelegramMessage(driver.id, orderText, 'button');
            if (result && result.ok && result.result && result.result.message_id) {
              await storage.addOrderNotification(order.orderId, driver.id, result.result.message_id);
            }
@@ -176,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { res.status(400).json({ error: "Invalid order data" }); }
   });
 
-  // --- ПРИЙНЯТТЯ ЗАМОВЛЕННЯ ---
+  // Accept Order
   app.post("/api/orders/:id/accept", async (req, res) => {
     try {
       const schema = z.object({ driverId: z.union([z.string(), z.number()]).transform(String), distanceKm: z.number().optional() });
@@ -205,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try { 
       const u = await storage.completeOrder(req.params.id); 
       if(!u) return res.status(404).json({}); 
-      if (u.clientId && /^\d+$/.test(u.clientId)) sendTelegramMessage(u.clientId, `🏁 <b>Поїздку завершено!</b>\n\nБудь ласка, оцініть поїздку.`, true);
+      if (u.clientId && /^\d+$/.test(u.clientId)) sendTelegramMessage(u.clientId, `🏁 <b>Поїздку завершено!</b>\n\nБудь ласка, оцініть поїздку.`, 'button'); // Кнопка для клієнта (може вести на головну)
       res.json(u); 
     } catch { res.status(500).json({}); } 
   });
