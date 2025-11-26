@@ -72,7 +72,7 @@ export class MemStorage implements IStorage {
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
     this.tariffs.set("towing", { type: "towing", basePrice: 500, perKm: 50 });
 
-    // ВАШ АДМІН
+    // ВАШ АДМІН (Єдиний)
     this.users.set("7677921905", {
       id: "7677921905", role: "admin", name: "Адміністратор", phone: null,
       telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
@@ -100,21 +100,24 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
   
-  // ВИПРАВЛЕНО: Тепер повертає ТІЛЬКИ водіїв. Адміна не чіпаємо.
+  // ПОВЕРТАЄМО ТІЛЬКИ ВОДІЇВ (Адмін сюди не входить, щоб не отримувати спам замовленнями)
   async getAllDrivers() { return Array.from(this.users.values()).filter(u => u.role === "driver"); }
   
   async getAllClients() { return Array.from(this.users.values()).filter(u => u.role === "client"); }
   async getAllUsers() { return Array.from(this.users.values()); }
   
+  // РЕЄСТРАЦІЯ ЗА КОДОМ (Виправлено)
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string) {
     const cleanCode = code.trim().toUpperCase();
     let accessCode: AccessCode | undefined;
     for (const [key, val] of this.accessCodes.entries()) {
       if (key.toUpperCase() === cleanCode) { accessCode = val; break; }
     }
+
     if (!accessCode || accessCode.isUsed) return null;
 
     let user = await this.getUser(userId);
+    // Якщо користувача немає - створюємо. Якщо є (клієнт) - оновлюємо роль.
     if (!user) {
       user = await this.createUser({ id: userId, role: "driver", name, phone, telegramAvatarUrl: null });
     } else {
@@ -126,7 +129,6 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  // ... (Решта методів createSupportTicket, getOrder, etc. - такі ж як в минулому повідомленні) ...
   async createSupportTicket(userId: string, message: string) {
     const id = randomUUID();
     const user = this.users.get(userId);

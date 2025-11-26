@@ -18,6 +18,7 @@ export function initTelegramBot(storage: IStorage) {
   async function getOrCreateUser(userId: string, username?: string): Promise<User> {
     let user = await storage.getUser(userId);
     if (!user) {
+      // За замовчуванням - клієнт
       const role = String(userId) === String(ADMIN_ID) ? 'admin' : 'client';
       user = await storage.createUser({
         id: userId,
@@ -27,15 +28,7 @@ export function initTelegramBot(storage: IStorage) {
         telegramAvatarUrl: null,
       });
     }
-    // Примусово робимо вас адміном
-    if (String(userId) === String(ADMIN_ID) && user.role !== 'admin') {
-      user = await storage.updateUser(userId, { role: 'admin' }) || user;
-    }
     return user;
-  }
-
-  function isAdmin(userId: number | string): boolean {
-    return String(userId) === String(ADMIN_ID);
   }
 
   // /start
@@ -46,11 +39,11 @@ export function initTelegramBot(storage: IStorage) {
     
     let text = '';
     if (user.role === 'admin') {
-      text = `Вітаю, Адміне ${firstName}! 👑\n\nНатисніть кнопку <b>"UniWay"</b> внизу.`;
+      text = `Вітаю, Адміне ${firstName}! 👑\n\nНатисніть кнопку <b>"UniWay"</b> внизу для керування.`;
     } else if (user.role === 'driver') {
-      text = `Привіт, ${firstName}! 🚖\n\nВи на лінії. Натисніть кнопку <b>"UniWay"</b>, щоб працювати.`;
+      text = `Привіт, ${firstName}! 🚖\n\nВи на лінії. Натисніть кнопку <b>"UniWay"</b>, щоб працювати або замовити таксі.`;
     } else {
-      text = `Вітаємо, ${firstName}! 🎉\n\n🚖 <b>UniWay</b> — ваше таксі.\n\nЯкщо у вас є код водія, просто надішліть його в чат.`;
+      text = `Вітаємо, ${firstName}! 🎉\n\n🚖 <b>UniWay</b> — зручне таксі.\n\nЯкщо ви водій і маєте код — надішліть його сюди.`;
     }
     
     await bot.sendMessage(msg.chat.id, text, { 
@@ -59,7 +52,7 @@ export function initTelegramBot(storage: IStorage) {
     });
   });
 
-  // Обробка текстових повідомлень (для кодів)
+  // Обробка кодів (текстові повідомлення)
   bot.on('message', async (msg) => {
     if (msg.text && msg.text.startsWith('/')) return;
     const senderId = String(msg.from!.id);
@@ -69,12 +62,12 @@ export function initTelegramBot(storage: IStorage) {
     if (messageText && messageText.length === 8) {
       const user = await getOrCreateUser(senderId, msg.from!.first_name);
       
-      // Перевіряємо код
+      // Пробуємо зареєструвати водія
       const result = await storage.registerDriverWithCode(senderId, messageText, user.name || "Водій", "Не вказано");
       
       if (result) {
-        await bot.sendMessage(msg.chat.id, `✅ <b>Вітаємо!</b>\n\nВаш код прийнято. Ви отримали статус <b>ВОДІЯ</b>. 🚖\n\nТепер ви можете приймати замовлення через додаток.`, { parse_mode: 'HTML' });
-        // Сповістимо адміна
+        await bot.sendMessage(msg.chat.id, `✅ <b>Вітаємо!</b>\n\nВаш код прийнято. Ви отримали статус <b>ВОДІЯ</b>. 🚖\n\nВідкрийте додаток (кнопка UniWay) — у вас з'явиться нове меню.`, { parse_mode: 'HTML' });
+        // Сповіщення адміну
         await bot.sendMessage(parseInt(ADMIN_ID), `🔔 Новий водій зареєструвався!\n${user.name} (ID: ${senderId})`);
       } else {
         await bot.sendMessage(msg.chat.id, '❌ Невірний або вже використаний код.', { parse_mode: 'HTML' });

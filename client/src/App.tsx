@@ -26,7 +26,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={ClientHome} />
-      <Route path="/preview" component={PreviewPage} />
       <Route path="/role-selector" component={RoleSelector} />
       
       <Route path="/client" component={ClientHome} />
@@ -53,43 +52,39 @@ function AppWrapper() {
   useEffect(() => {
     if (!isLoading && user) {
       
-      // --- 1. АДМІН (СУВОРО ТІЛЬКИ АДМІНКА) ---
+      // 1. АДМІН (Тільки Адмінка)
       if (role === "admin" || String(userId) === ADMIN_ID) {
-        // Якщо ви спробуєте зайти на /client або /driver - вас викине в /admin
         if (!location.startsWith("/admin")) {
           setLocation("/admin");
         }
-        return; 
+        return;
       }
 
-      // --- 2. ВОДІЙ (МАЄ ДОСТУП ДО ВСЬОГО, ОКРІМ АДМІНКИ) ---
+      // 2. ВОДІЙ (Має вибір)
       if (role === "driver") {
         // Заборона на адмінку
         if (location.startsWith("/admin")) {
           setLocation("/role-selector");
-          return;
         }
-        // Якщо водій на старті -> даємо вибір (Робота чи Таксі)
+        // Старт -> Вибір
         if (location === "/") {
           setLocation("/role-selector");
         }
       }
 
-      // --- 3. КЛІЄНТ (ТІЛЬКИ ЗАМОВЛЕННЯ) ---
+      // 3. КЛІЄНТ (Тільки замовлення)
       if (role === "client") {
-        // Заборона на адмінку, водія і вибір ролі
+        // Заборона на все зайве
         if (location.startsWith("/admin") || location.startsWith("/driver") || location === "/role-selector") {
           setLocation("/client");
           return;
         }
-
         // Реєстрація
         if (!user.phone && location !== "/client-register") {
           setLocation("/client-register");
           return;
         }
-        
-        // Якщо все ок -> в кабінет
+        // Старт
         if (location === "/" && user.phone) {
           setLocation("/client");
         }
@@ -97,10 +92,7 @@ function AppWrapper() {
     }
   }, [user, role, isLoading, location, setLocation]);
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Завантаження...</div>;
-  }
-
+  if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   return <Router />;
 }
 
