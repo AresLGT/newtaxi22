@@ -71,15 +71,10 @@ export default async function runApp(
 ) {
   const server = await registerRoutes(app);
 
-  // --- ВАЖЛИВА ЗМІНА: ВИМИКАЄМО POLLING ---
-  // Ми закоментували це, щоб бот не збивав налаштування Webhook
-  
-  // const bot = initTelegramBot(storage);
-  // if (bot) {
-  //   log("Telegram bot initialized successfully", "telegram");
-  // }
-  
-  // ----------------------------------------
+  const bot = initTelegramBot(storage);
+  if (bot) {
+    log("Telegram bot initialized successfully", "telegram");
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
