@@ -93,9 +93,10 @@ export function initTelegramBot(storage: IStorage) {
   }
 
   function generateDriverCode(): string {
+    // Генеруємо 6 символів, щоб співпадало з логікою storage
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
@@ -148,7 +149,8 @@ export function initTelegramBot(storage: IStorage) {
         [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]
       ];
     } else {
-      text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nДля реєстрації як водій - введіть код доступу (8 символів).`;
+      // Текст оновлено: пишемо про 6 символів
+      text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nДля реєстрації як водій - введіть код доступу (6 символів).`;
       keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]];
     }
     
@@ -238,19 +240,20 @@ export function initTelegramBot(storage: IStorage) {
     await bot.sendMessage(msg.chat.id, `📋 <b>Коди (${unused.length}):</b>\n\n${list}`, { parse_mode: 'HTML' });
   });
 
-  // --- ОСНОВНА ЗМІНА ТУТ (Обробка коду водія) ---
+  // --- ОБРОБКА КОДУ ВОДІЯ (ВИПРАВЛЕНА) ---
   bot.on('message', async (msg) => {
     // Пропускаємо команди
     if (msg.text && msg.text.startsWith('/')) return;
     
     const senderId = String(msg.from!.id);
-    const messageText = msg.text;
+    // ВИПРАВЛЕННЯ: прибираємо зайві пробіли (на випадок копіювання)
+    const messageText = msg.text?.trim(); 
     
-    // Перевірка чи це код водія (8 символів, букви та цифри)
-    if (messageText && messageText.length === 8 && /^[A-Z0-9]+$/i.test(messageText)) {
+    // ВИПРАВЛЕННЯ: перевіряємо довжину 6 СИМВОЛІВ (було 8), тільки букви та цифри
+    if (messageText && messageText.length === 6 && /^[A-Z0-9]+$/i.test(messageText)) {
       const user = await getOrCreateUser(senderId, msg.from!.first_name);
       
-      // Якщо користувач вже водій або адмін, ігноруємо (або можна написати повідомлення)
+      // Якщо користувач вже водій або адмін
       if (user.role === 'driver' || user.role === 'admin') {
          await bot.sendMessage(msg.chat.id, '✅ Ви вже зареєстровані як водій. Натисніть /start для меню.', { parse_mode: 'HTML' });
          return;
@@ -278,7 +281,7 @@ export function initTelegramBot(storage: IStorage) {
         parse_mode: 'HTML' 
       });
       
-      // (Опціонально) Повідомляємо адміна, що хтось активував код
+      // (Опціонально) Повідомляємо адміна
       await bot.sendMessage(parseInt(ADMIN_ID), `ℹ️ <b>Новий водій активований:</b>\n\n👤 ${firstName}\n🆔 <code>${senderId}</code>\n🎫 Код: <code>${codeUpper}</code>`, { parse_mode: 'HTML' });
     }
   });
