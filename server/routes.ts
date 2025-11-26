@@ -10,9 +10,10 @@ import {
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 
 // --- НАЛАШТУВАННЯ ---
-const WEBAPP_URL = "https://newtaxi22-production.up.railway.app";
+// ВАЖЛИВО: Переконайся, що тут твоя актуальна адреса на Railway
+const WEBAPP_URL = "https://newtaxi22-production.up.railway.app"; 
 
-// Функція відправки (повертає результат, щоб ми знали message_id)
+// Функція відправки
 async function sendTelegramMessage(chatId: string, text: string, openWebApp: boolean = false) {
   const token = process.env.BOT_TOKEN;
   if (!token) return null;
@@ -23,7 +24,6 @@ async function sendTelegramMessage(chatId: string, text: string, openWebApp: boo
     parse_mode: 'HTML'
   };
 
-  // Додаємо кнопку відкриття Web App, якщо треба
   if (openWebApp) {
     body.reply_markup = {
       inline_keyboard: [[{ text: "↗️ Прийняти замовлення", web_app: { url: `${WEBAPP_URL}/driver` } }]]
@@ -43,23 +43,57 @@ async function sendTelegramMessage(chatId: string, text: string, openWebApp: boo
   }
 }
 
-// Функція видалення повідомлення
 async function deleteTelegramMessage(chatId: string, messageId: number) {
   const token = process.env.BOT_TOKEN;
   if (!token) return;
-
   try {
     await fetch(`https://api.telegram.org/bot${token}/deleteMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, message_id: messageId })
     });
-  } catch (error) {
-    console.error(`Failed to delete message ${messageId} from ${chatId}`, error);
-  }
+  } catch (error) { console.error(`Delete error`, error); }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // --- 1. ГОЛОВНИЙ МАРШРУТ ДЛЯ TELEGRAM (WEBHOOK) ---
+  // Сюди Телеграм буде надсилати всі повідомлення з чату
+  app.post("/api/bot/webhook", async (req, res) => {
+    try {
+      const update = req.body;
+      
+      // Перевіряємо, чи це текстове повідомлення
+      if (update.message && update.message.text) {
+        const chatId = update.message.chat.id.toString();
+        const text = update.message.text.trim(); // Текст, який ввів юзер (потенційний код)
+        const firstName = update.message.from.first_name || "Driver";
+
+        console.log(`[BOT] Отримано повідомлення від ${chatId}: ${text}`);
+
+        // Спроба використати це як код водія
+        // Оскільки ми не знаємо номер телефону з простого тексту, пишемо заглушку
+        const result = await storage.registerDriverWithCode(chatId, text, firstName, "TelegramChat");
+
+        if (result) {
+          // Успіх!
+          await sendTelegramMessage(chatId, `✅ <b>Вітаємо! Ви стали водієм.</b>\n\nТепер ви можете приймати замовлення через додаток.\n\nНатисніть кнопку Menu або відкрийте Web App.`);
+        } else {
+          // Якщо це схоже на спробу ввести код (довжина > 3), але код невірний
+          if (text.length > 3 && text.length < 20) {
+             await sendTelegramMessage(chatId, `❌ <b>Код невірний або вже використаний.</b>\nСпробуйте ще раз або зверніться до адміна.`);
+          } else if (text === "/start") {
+             await sendTelegramMessage(chatId, `👋 Привіт! Якщо у вас є код водія, просто надішліть його сюди повідомленням.`);
+          }
+        }
+      }
+      res.sendStatus(200); // Обов'язково відповідаємо Телеграму "ОК"
+    } catch (e) {
+      console.error("Webhook Error:", e);
+      res.sendStatus(500);
+    }
+  });
+  // ---------------------------------------------------
+
   // User routes
   app.get("/api/users/:id", async (req, res) => {
     const user = await storage.getUser(req.params.id);
@@ -87,6 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { res.status(400).json({ error: "Invalid update data" }); }
   });
 
+  // Залишаємо старий роут на випадок, якщо колись запрацює через WebApp
   app.post("/api/users/register-driver", async (req, res) => {
     try {
       const schema = z.object({ userId: z.string(), code: z.string(), name: z.string(), phone: z.string() });
@@ -99,12 +134,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin, Tariffs, Finance, Reviews, Broadcast
   app.get("/api/admin/tariffs", async (req, res) => { const t = await storage.getTariffs(); res.json(t); });
-  app.post("/api/admin/tariffs", async (req, res) => {
-    try { const d = req.body; await storage.updateTariff(d.type, d.basePrice, d.perKm); res.json({ success: true }); } catch { res.status(400).json({ error: "Error" }); }
-  });
-  app.post("/api/admin/finance/update", async (req, res) => {
-    try { const d = req.body; const u = await storage.updateBalance(d.userId, d.amount); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(400).json({}); }
-  });
+  app.post("/api/admin/tariffs", async (req, res) => { try { const d = req.body; await storage.updateTariff(d.type, d.basePrice, d.perKm); res.json({ success: true }); } catch { res.status(400).json({ error: "Error" }); } });
+  app.post("/api/admin/finance/update", async (req, res) => { try { const d = req.body; const u = await storage.updateBalance(d.userId, d.amount); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(400).json({}); } });
   app.get("/api/admin/reviews", async (req, res) => { const r = await storage.getAllRatings(); res.json(r); });
   
   app.post("/api/admin/broadcast", async (req, res) => {
@@ -129,19 +160,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = insertOrderSchema.parse(req.body);
       const order = await storage.createOrder(data);
-      res.status(201).json(order); // Швидка відповідь
+      res.status(201).json(order);
 
-      // Розсилка водіям
       const drivers = await storage.getAllDrivers();
       const orderText = `🚖 <b>Нове замовлення!</b>\n\n📍 <b>Звідки:</b> ${order.from}\n🏁 <b>Куди:</b> ${order.to}\n💰 <b>Орієнтовно:</b> ${order.price || "?"} грн`;
       
-      // Використовуємо async цикл, щоб чекати на відповіді Telegram і зберігати ID
       for (const driver of drivers) {
         if (driver.id && /^\d+$/.test(driver.id) && !driver.isBlocked && driver.id !== order.clientId) {
-           // Відправляємо і чекаємо результат
            const result = await sendTelegramMessage(driver.id, orderText, true);
-           
-           // Якщо Telegram повернув message_id, зберігаємо його
            if (result && result.ok && result.result && result.result.message_id) {
              await storage.addOrderNotification(order.orderId, driver.id, result.result.message_id);
            }
@@ -161,25 +187,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.acceptOrder(req.params.id, data.driverId, data.distanceKm);
       if (!order) return res.status(400).json({ error: "Cannot accept order" });
 
-      // --- ВИДАЛЕННЯ ПОВІДОМЛЕНЬ ---
-      // Отримуємо список всіх, кому ми відправили це замовлення
       const notifications = await storage.getOrderNotifications(req.params.id);
-      
-      // Пробігаємось і видаляємо
-      notifications.forEach(note => {
-         deleteTelegramMessage(note.chatId, note.messageId);
-      });
-      // ------------------------------
+      notifications.forEach(note => { deleteTelegramMessage(note.chatId, note.messageId); });
 
       if (order.clientId && /^\d+$/.test(order.clientId)) {
         sendTelegramMessage(order.clientId, `✅ <b>Водій прийняв замовлення!</b>\n\nВодій: ${driver.name}\nАвто вже виїжджає.`);
       }
-
       res.json(order);
     } catch (error: any) { res.status(400).json({ error: error?.message }); }
   });
 
-  // Інші дії
   app.post("/api/orders/:id/release", async (req, res) => { try { const u = await storage.releaseOrder(req.params.id); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(500).json({}); } });
   app.post("/api/orders/:id/cancel", async (req, res) => { try { const u = await storage.updateOrder(req.params.id, { status: "cancelled" }); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(500).json({}); } });
   app.post("/api/admin/orders/:id/cancel", async (req, res) => { try { const u = await storage.updateOrder(req.params.id, { status: "cancelled" }); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(500).json({}); } });
