@@ -20,6 +20,7 @@ import ChatPage from "@/pages/chat-page";
 import PreviewPage from "@/pages/preview";
 import NotFound from "@/pages/not-found";
 
+// ВАШ ID
 const ADMIN_ID = "7677921905";
 
 function Router() {
@@ -52,31 +53,38 @@ function AppWrapper() {
   useEffect(() => {
     if (!isLoading && user) {
       
-      // 1. АДМІН: (Завжди пускаємо в адмінку зі старту)
+      // --- 1. АДМІН ---
       if (role === "admin" || String(userId) === ADMIN_ID) {
+        // Якщо адмін на вході - пропонуємо адмінку
         if (location === "/role-selector" || location === "/admin-login") {
           setLocation("/admin");
         }
+        // Але якщо пішов в /driver - не чіпаємо його
         return; 
       }
 
-      // 2. ВОДІЙ
+      // --- 2. ВОДІЙ ---
       if (role === "driver") {
-        // Якщо водій зайшов на старт або вибір ролі -> кидаємо в кабінет
+        // Водій на вході -> кабінет
         if (location === "/role-selector" || location === "/") {
           setLocation("/driver");
         }
-        // Якщо водій хоче зайти в /client (замовити таксі) - ДОЗВОЛЯЄМО!
+        // Якщо водій хоче зайти в /client (замовити) -> дозволяємо!
       }
 
-      // 3. КЛІЄНТ
+      // --- 3. КЛІЄНТ ---
       if (role === "client") {
+        // Блокуємо доступ до адмінки і водія
+        if (location.startsWith("/admin") || location.startsWith("/driver")) {
+          setLocation("/client");
+          return;
+        }
         // Якщо немає телефону -> реєстрація
         if (!user.phone && location !== "/client-register" && location !== "/role-selector") {
           setLocation("/client-register");
           return;
         }
-        // Якщо все ок -> кабінет клієнта
+        // Звичайний вхід
         if ((location === "/" || location === "/role-selector") && user.phone) {
           setLocation("/client");
         }

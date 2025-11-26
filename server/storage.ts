@@ -72,7 +72,7 @@ export class MemStorage implements IStorage {
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
     this.tariffs.set("towing", { type: "towing", basePrice: 500, perKm: 50 });
 
-    // ВАЖЛИВО: Тільки ви - адмін. Жодних admin1.
+    // ТІЛЬКИ ВИ - АДМІН
     this.users.set("7677921905", {
       id: "7677921905", role: "admin", name: "Адміністратор", phone: null,
       telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
@@ -99,21 +99,19 @@ export class MemStorage implements IStorage {
     this.users.set(userId, updatedUser);
     return updatedUser;
   }
+  
+  // Адмін теж входить в список водіїв для сповіщень
   async getAllDrivers() { return Array.from(this.users.values()).filter(u => u.role === "driver" || u.role === "admin"); }
   async getAllClients() { return Array.from(this.users.values()).filter(u => u.role === "client"); }
   async getAllUsers() { return Array.from(this.users.values()); }
   
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string) {
-    // Перевірка коду БЕЗ чутливості до регістру і пробілів
     const cleanCode = code.trim().toUpperCase();
-    
-    // Шукаємо код у мапі (перебором, бо ключі можуть бути в різному регістрі)
     let accessCode: AccessCode | undefined;
     for (const [key, val] of this.accessCodes.entries()) {
       if (key.toUpperCase() === cleanCode) { accessCode = val; break; }
     }
-
-    if (!accessCode || accessCode.isUsed) { console.log(`Code failed: ${cleanCode}`); return null; }
+    if (!accessCode || accessCode.isUsed) return null;
 
     let user = await this.getUser(userId);
     if (!user) user = await this.createUser({ id: userId, role: "driver", name, phone, telegramAvatarUrl: null });

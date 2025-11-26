@@ -2,6 +2,9 @@ import { createContext, useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { User, UserRole } from "@shared/schema";
 
+// ТІЛЬКИ ЦЕЙ ID БУДЕ АДМІНОМ
+const HARDCODED_ADMIN_ID = "7677921905";
+
 export interface UserContextType {
   user: User | null;
   userId: string;
@@ -23,12 +26,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       return String(tgUser.id);
     }
     
-    // Спроба Б: Якщо ми в браузері (тестуємо) - беремо збережений ID
+    // Спроба Б: Якщо це браузер - беремо збережений "гостьовий" ID
     const savedId = localStorage.getItem("test_user_id");
     if (savedId) return savedId;
 
-    // Спроба В: Якщо нічого немає - генеруємо НОВИЙ випадковий ID (Гість)
-    const newId = "user_" + Math.random().toString(36).substr(2, 9);
+    // Спроба В: Генеруємо НОВИЙ випадковий ID для гостя
+    // ВАЖЛИВО: Ми більше не використовуємо тут ваш адмінський ID за замовчуванням!
+    const newId = "guest_" + Math.random().toString(36).substr(2, 9);
     localStorage.setItem("test_user_id", newId);
     return newId;
   });
@@ -39,16 +43,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
     retry: 1, 
   });
 
-  // Періодично перевіряємо статус (на випадок, якщо водій ввів код і роль змінилася)
+  // Періодично оновлюємо дані (на випадок, якщо водій ввів код і роль змінилася)
   useEffect(() => {
     const interval = setInterval(() => {
       refetch();
-    }, 5000); 
+    }, 3000); 
     return () => clearInterval(interval);
   }, [refetch]);
 
-  // Визначаємо роль. За замовчуванням - клієнт.
-  const role = user?.role || "client";
+  // 3. Визначаємо роль
+  let role: UserRole = "client"; // За замовчуванням всі - клієнти
+
+  // Якщо це ВИ (по ID) - ви завжди Адмін
+  if (String(userId) === HARDCODED_ADMIN_ID) {
+    role = "admin";
+  } 
+  // Якщо сервер каже, що це водій/адмін - віримо серверу
+  else if (user?.role) {
+    role = user.role;
+  }
 
   return (
     <UserContext.Provider
@@ -58,7 +71,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         role,
         isLoading,
         error: error as Error | null,
-        setRole: () => {}, // Роль змінює сервер
+        setRole: () => {}, 
       }}
     >
       {children}
