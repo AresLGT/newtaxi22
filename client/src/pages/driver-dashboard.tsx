@@ -318,7 +318,6 @@ export default function DriverDashboard() {
   );
 }
 
-// --- ВИПРАВЛЕНИЙ КОМПОНЕНТ КАРТКИ КЛІЄНТА ---
 function ClientInfoCard({ clientId }: { clientId: string }) {
   const { data: client, isLoading } = useQuery<UserType>({
     queryKey: [`/api/users/${clientId}`],
@@ -327,7 +326,7 @@ function ClientInfoCard({ clientId }: { clientId: string }) {
   if (isLoading) return <Skeleton className="h-20 w-full" />;
 
   const hasPhone = client?.phone && client.phone.length > 5;
-  // Очищаємо телефон: залишаємо тільки цифри, додаємо плюс на початку
+  // Очищаємо телефон
   const cleanPhone = hasPhone ? "+" + client!.phone!.replace(/\D/g, '') : "";
 
   return (
@@ -338,13 +337,14 @@ function ClientInfoCard({ clientId }: { clientId: string }) {
         <p className="font-bold text-lg truncate">{client?.name || "Невідомий"}</p>
       </div>
       
-      {/* КНОПКА ДЗВІНКА */}
+      {/* ВИПРАВЛЕНА КНОПКА ДЗВІНКА */}
       {hasPhone && (
-        <Button size="icon" className="rounded-full bg-green-600 hover:bg-green-700 h-10 w-10 shrink-0" asChild>
-          <a href={`tel:${cleanPhone}`}>
-            <Phone className="w-5 h-5 text-white" />
-          </a>
-        </Button>
+        <a 
+          href={`tel:${cleanPhone}`}
+          className="inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-green-600 hover:bg-green-700 text-white h-10 w-10 shrink-0"
+        >
+          <Phone className="w-5 h-5 text-white" />
+        </a>
       )}
     </div>
   );
