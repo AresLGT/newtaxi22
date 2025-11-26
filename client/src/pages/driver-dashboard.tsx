@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { MapPin, Navigation, DollarSign, User, Plus, Calculator, CheckCircle2, MessageSquare, Phone, XCircle } from "lucide-react";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { MapPin, Navigation, DollarSign, User, Plus, CheckCircle2, MessageSquare, Phone, XCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -36,16 +36,13 @@ export default function DriverDashboard() {
     }
   }, [role, setLocation]);
 
-  // 1. Отримуємо ВСІ замовлення
   const { data: rawActiveOrders = [], isLoading: isLoadingActive } = useQuery<Order[]>({
     queryKey: ["/api/orders/active"],
     refetchInterval: 2000,
   });
 
-  // --- ФІЛЬТРАЦІЯ: Не показуємо замовлення, де клієнт = цей водій ---
   const activeOrders = rawActiveOrders.filter(order => order.clientId !== driverId);
 
-  // 2. Поточне замовлення
   const { data: currentOrders = [], isLoading: isLoadingCurrent } = useQuery<Order[]>({
     queryKey: [`/api/orders/driver/${driverId}/current`],
     enabled: !!driverId,
@@ -82,7 +79,6 @@ export default function DriverDashboard() {
     },
   });
 
-  // Мутація ВІДМОВИ (Release)
   const releaseOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const response = await apiRequest("POST", `/api/orders/${orderId}/release`);
@@ -130,13 +126,11 @@ export default function DriverDashboard() {
   const tariff = tariffKey ? TARIFFS[tariffKey] : null;
   const estimatedPrice = watchedDistance > 0 && tariff ? calculatePrice(tariffKey as TariffKey, watchedDistance) : 0;
 
-  // --- ВІДОБРАЖЕННЯ: АКТИВНА ПОЇЗДКА ---
   if (currentOrder) {
     return (
       <div className="min-h-screen bg-background p-4 flex flex-col items-center justify-center">
         <Card className="w-full max-w-md border-primary border-2 shadow-lg animate-in fade-in zoom-in duration-300">
           <CardHeader className="bg-primary/10 pb-4 relative">
-            {/* КНОПКА ВІДМОВИ */}
             <Button 
               variant="ghost" 
               size="sm" 
@@ -221,7 +215,6 @@ export default function DriverDashboard() {
     );
   }
 
-  // --- СПИСОК ---
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-10 bg-card border-b border-card-border">
@@ -325,18 +318,32 @@ export default function DriverDashboard() {
   );
 }
 
+// --- ВИПРАВЛЕНИЙ КОМПОНЕНТ КАРТКИ КЛІЄНТА ---
 function ClientInfoCard({ clientId }: { clientId: string }) {
   const { data: client, isLoading } = useQuery<UserType>({
     queryKey: [`/api/users/${clientId}`],
   });
+  
   if (isLoading) return <Skeleton className="h-20 w-full" />;
+
+  const hasPhone = client?.phone && client.phone.length > 5;
+  // Очищаємо телефон: залишаємо тільки цифри, додаємо плюс на початку
+  const cleanPhone = hasPhone ? "+" + client!.phone!.replace(/\D/g, '') : "";
+
   return (
     <div className="bg-muted/50 p-3 rounded-lg border border-border flex items-center gap-3">
       <div className="bg-primary/20 p-2.5 rounded-full"><User className="w-6 h-6 text-primary" /></div>
-      <div className="flex-1 min-w-0"><p className="text-xs text-muted-foreground font-bold uppercase">Клієнт</p><p className="font-bold text-lg truncate">{client?.name || "Невідомий"}</p></div>
-      {client?.phone && (
-        <Button size="icon" className="rounded-full bg-green-600 hover:bg-green-700 h-10 w-10" asChild>
-          <a href={`tel:${client.phone.replace(/[^\d+]/g, '')}`}><Phone className="w-5 h-5 text-white" /></a>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs text-muted-foreground font-bold uppercase">Клієнт</p>
+        <p className="font-bold text-lg truncate">{client?.name || "Невідомий"}</p>
+      </div>
+      
+      {/* КНОПКА ДЗВІНКА */}
+      {hasPhone && (
+        <Button size="icon" className="rounded-full bg-green-600 hover:bg-green-700 h-10 w-10 shrink-0" asChild>
+          <a href={`tel:${cleanPhone}`}>
+            <Phone className="w-5 h-5 text-white" />
+          </a>
         </Button>
       )}
     </div>

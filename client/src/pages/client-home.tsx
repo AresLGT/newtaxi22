@@ -5,21 +5,21 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Car, Truck, Package, Unplug, Clock, User, MessageSquare, Star, MapPin, DollarSign, Phone, XCircle
+  Car, Truck, Package, Unplug, Clock, User, MessageSquare, MapPin, DollarSign, Phone, XCircle
 } from "lucide-react";
 import { useLocation } from "wouter";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"; // <-- Додав useMutation
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useUser } from "@/lib/use-user";
 import { RatingDialog } from "@/components/rating-dialog";
-import { apiRequest } from "@/lib/queryClient"; // <-- Додав імпорт
-import { useToast } from "@/hooks/use-toast"; // <-- Додав useToast
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Order, User as UserType } from "@shared/schema";
 
 export default function ClientHome() {
   const [, setLocation] = useLocation();
   const { userId } = useUser();
   const queryClient = useQueryClient();
-  const { toast } = useToast(); // <-- Ініціалізація toast
+  const { toast } = useToast();
   
   const [ratingDialog, setRatingDialog] = useState<{
     open: boolean;
@@ -40,7 +40,6 @@ export default function ClientHome() {
     refetchInterval: 3000, 
   });
 
-  // --- МУТАЦІЯ СКАСУВАННЯ ---
   const cancelOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
       const response = await apiRequest("POST", `/api/orders/${orderId}/cancel`);
@@ -51,7 +50,6 @@ export default function ClientHome() {
       toast({ title: "Замовлення скасовано" });
     },
   });
-  // --------------------------
 
   useEffect(() => {
     orders.forEach(order => {
@@ -87,10 +85,6 @@ export default function ClientHome() {
     };
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
-  };
-
-  const handleRateDriver = (orderId: string, driverName?: string) => {
-    setRatingDialog({ open: true, orderId, driverName });
   };
 
   const handleRatingSuccess = () => {
@@ -172,7 +166,6 @@ export default function ClientHome() {
                               <Clock className="w-5 h-5" />
                               <span className="text-sm font-medium">Шукаємо водія...</span>
                             </div>
-                            {/* Кнопка СКАСУВАТИ для клієнта */}
                             <Button 
                               variant="destructive" 
                               className="w-full" 
@@ -192,7 +185,6 @@ export default function ClientHome() {
                 })}
               </div>
             )}
-            {/* Completed Orders logic... (пропустимо для скорочення, воно там є) */}
           </>
         )}
       </div>
@@ -201,10 +193,16 @@ export default function ClientHome() {
   );
 }
 
-function DriverInfoSection({ driverId, orderId, setLocation, isInProgress }: any) {
+// --- ВИПРАВЛЕНИЙ КОМПОНЕНТ ІНФО ПРО ВОДІЯ ---
+function DriverInfoSection({ driverId, orderId, setLocation, isInProgress }: { driverId: string, orderId: string, setLocation: any, isInProgress: boolean }) {
   const { data: driver, isLoading } = useQuery<UserType>({ queryKey: [`/api/users/${driverId}`] });
+  
   if (isLoading) return <div>Завантаження...</div>;
-  const getCleanPhone = (phone: string) => phone.replace(/[^\d+]/g, '');
+
+  const hasPhone = driver?.phone && driver.phone.length > 5;
+  // Очищаємо телефон
+  const cleanPhone = hasPhone ? "+" + driver!.phone!.replace(/\D/g, '') : "";
+
   return (
     <div className="space-y-3 pt-2">
       <div className="bg-primary/5 p-3 rounded-lg border border-primary/20">
@@ -213,7 +211,19 @@ function DriverInfoSection({ driverId, orderId, setLocation, isInProgress }: any
           <div className="flex-1"><div className="font-bold text-base">{isInProgress ? "Виконується поїздка" : "Водій прямує до вас"}</div>{driver?.name && <div className="text-sm text-muted-foreground">{driver.name}</div>}</div>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
-          {driver?.phone && <Button className="w-full bg-green-600 hover:bg-green-700 text-white" asChild><a href={`tel:${getCleanPhone(driver.phone)}`}><Phone className="w-4 h-4 mr-2" />Дзвонити</a></Button>}
+          {/* КНОПКА ДЗВІНКА */}
+          {hasPhone ? (
+            <Button className="w-full bg-green-600 hover:bg-green-700 text-white" asChild>
+              <a href={`tel:${cleanPhone}`}>
+                <Phone className="w-4 h-4 mr-2" />Дзвонити
+              </a>
+            </Button>
+          ) : (
+            <Button className="w-full" disabled variant="outline">
+               <Phone className="w-4 h-4 mr-2" /> Немає тел.
+            </Button>
+          )}
+
           <Button className="w-full" variant="outline" onClick={() => setLocation(`/chat/${orderId}`)}><MessageSquare className="w-4 h-4 mr-2" />Чат</Button>
         </div>
       </div>
