@@ -1,34 +1,85 @@
 import { Card } from "@/components/ui/card";
-import { User, Car } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { User, Car, Shield } from "lucide-react";
 import { useLocation } from "wouter";
 import { useUser } from "@/lib/use-user";
+import type { UserRole } from "@shared/schema";
+
+type RoleWithPath = { role: UserRole; icon: React.ComponentType<{ className?: string }>; label: string; description: string; color: string; path: string }
 
 export default function RoleSelector() {
   const [, setLocation] = useLocation();
-  const { role } = useUser();
+  const { setRole } = useUser();
 
-  // Якщо сюди потрапив клієнт - викидаємо його
-  if (role === "client") {
-    setLocation("/client");
-    return null;
-  }
+  const roles: RoleWithPath[] = [
+    {
+      role: "client",
+      icon: User,
+      label: "Клієнт",
+      description: "Замовити таксі",
+      color: "bg-primary text-primary-foreground",
+      path: "/client",
+    },
+    {
+      role: "driver",
+      icon: Car,
+      label: "Водій",
+      description: "Приймати замовлення",
+      color: "bg-primary text-primary-foreground",
+      path: "/driver-register",
+    },
+  ];
+
+  const handleRoleSelect = (role: UserRole, path: string) => {
+    setRole(role);
+    setLocation(path);
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">UniWay</h1>
-          <p className="text-muted-foreground">Оберіть режим:</p>
+          <h1 className="text-3xl font-bold">Таксі-Сервіс</h1>
+          <p className="text-muted-foreground">Оберіть вашу роль</p>
         </div>
-        <div className="space-y-4">
-          <Card className="cursor-pointer border-primary/20 hover:bg-accent/50 p-6 flex items-center gap-4" onClick={() => setLocation("/client")}>
-            <div className="bg-blue-500/10 text-blue-500 rounded-full p-4"><User className="w-8 h-8" /></div>
-            <div><div className="font-bold text-xl">Я Пасажир</div><div className="text-sm text-muted-foreground">Замовити таксі</div></div>
-          </Card>
-          <Card className="cursor-pointer border-primary/20 hover:bg-accent/50 p-6 flex items-center gap-4" onClick={() => setLocation("/driver")}>
-            <div className="bg-yellow-500/10 text-yellow-600 rounded-full p-4"><Car className="w-8 h-8" /></div>
-            <div><div className="font-bold text-xl">Я Водій</div><div className="text-sm text-muted-foreground">Вийти на лінію</div></div>
-          </Card>
+
+        <div className="space-y-3">
+          {roles.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card
+                key={item.role}
+                className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer border-card-border"
+                onClick={() => handleRoleSelect(item.role, item.path)}
+                data-testid={`button-role-${item.role}`}
+              >
+                <div className="p-4 flex items-center gap-4">
+                  <div className={`${item.color} rounded-xl p-3 flex-shrink-0`}>
+                    <Icon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-lg">{item.label}</div>
+                    <div className="text-sm text-muted-foreground">{item.description}</div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+
+        <div className="text-center space-y-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/admin-login")}
+            data-testid="button-admin-access"
+            className="w-full"
+          >
+            Доступ для адміністратора
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Telegram Web App • Версія 1.0
+          </p>
         </div>
       </div>
     </div>

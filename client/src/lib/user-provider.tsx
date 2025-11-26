@@ -1,60 +1,99 @@
-import { createContext, useEffect, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import type { User, UserRole } from "@shared/schema";
-
-const HARDCODED_ADMIN_ID = "7677921905";
+import { createContext, useState, ReactNode, useEffect } from "react";
+import type { UserRole } from "@shared/schema";
 
 export interface UserContextType {
-  user: User | null;
   userId: string;
   role: UserRole;
-  isLoading: boolean;
-  error: Error | null;
   setRole: (role: UserRole) => void;
+  isLoading: boolean;
 }
 
-export const UserContext = createContext<UserContextType | null>(null);
+export const UserContext = createContext<UserContextType>({
+  userId: "",
+  role: "client",
+  setRole: () => {},
+  isLoading: true,
+} as UserContextType);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [userId] = useState<string>(() => {
-    // 1. Telegram
-    // @ts-ignore
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-    if (tgUser?.id) return String(tgUser.id);
-    
-    // 2. Test
-    const savedId = localStorage.getItem("test_user_id");
-    if (savedId) return savedId;
+  const [role, setRole] = useState<UserRole>("client");
+  const [isLoading, setIsLoading] = useState(true);
+  const [userIdState, setUserIdState] = useState<string>("");
 
-    // 3. Guest
-    const newId = "user_" + Math.random().toString(36).substr(2, 9);
-    localStorage.setItem("test_user_id", newId);
-    return newId;
-  });
-
-  // Завантажуємо дані
-  const { data: user, isLoading, error, refetch } = useQuery<User>({
-    queryKey: [`/api/users/${userId}`],
-    retry: 1, 
-  });
-
-  // Постійно оновлюємо (щоб зловити зміну ролі після введення коду)
   useEffect(() => {
-    const interval = setInterval(() => { refetch(); }, 3000); 
-    return () => clearInterval(interval);
-  }, [refetch]);
+    const initializeUser = async () => {
+      try {
+        // Check URL parameters first (for testing)
+        const params = new URLSearchParams(window.location.search);
+        let telegramUserId = params.get("userId") ? parseInt(params.get("userId")!) : null;
+        const asRole = params.get("asRole") as UserRole | null;
+        
+        // Get Telegram user ID from Web App
+        if (!telegramUserId) {
+          const tg = (window as any).Telegram?.WebApp;
+          telegramUserId = tg?.initData ? tg.initDataUnsafe?.user?.id : null;
+        }
+        
+        // Fallback: check localStorage for development/testing
+        if (!telegramUserId) {
+          const savedId = localStorage.getItem("__dev_telegram_id__");
+          if (savedId) {
+            telegramUserId = parseInt(savedId);
+          }
+        }
 
-  let role: UserRole = "client"; // За замовчуванням
+        if (!telegramUserId) {
+          setUserIdState(`client-${Math.random().toString(36).substring(7)}`);
+          setIsLoading(false);
+          return;
+        }
 
-  // ТІЛЬКИ ВИ - АДМІН
-  if (String(userId) === HARDCODED_ADMIN_ID) {
-    role = "admin";
-  } else if (user?.role) {
-    role = user.role;
-  }
+        // Fetch user role from backend
+        try {
+          const response = await fetch(`/api/users/${telegramUserId}`);
+          
+          if (response.ok) {
+            const user = await response.json();
+            
+            // If asRole is specified, use it (for testing purposes or when admin switches roles)
+            const finalRole = asRole || user.role;
+            
+            setRole(finalRole);
+            setUserIdState(user.id);
+          } else {
+            // User doesn't exist yet, create as client
+            setUserIdState(telegramUserId.toString());
+            setRole(asRole || "client");
+          }
+        } catch (error) {
+          setUserIdState(telegramUserId.toString());
+          setRole(asRole || "client");
+        }
+      } catch (error) {
+        console.error("❌ Error initializing user:", error);
+        setUserIdState(`client-${Math.random().toString(36).substring(7)}`);
+        setRole("client");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, []);
+
+  const userId = userIdState || (role === "admin" 
+    ? "admin1" 
+    : `${role}-${Math.random().toString(36).substring(7)}`);
+
+  const value: UserContextType = {
+    userId,
+    role,
+    setRole,
+    isLoading,
+  };
 
   return (
-    <UserContext.Provider value={{ user: user ?? null, userId, role, isLoading, error: error as Error | null, setRole: () => {} }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
