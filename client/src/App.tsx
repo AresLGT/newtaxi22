@@ -20,13 +20,13 @@ import ChatPage from "@/pages/chat-page";
 import PreviewPage from "@/pages/preview";
 import NotFound from "@/pages/not-found";
 
-// ВАШ ID
 const ADMIN_ID = "7677921905";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={ClientHome} />
+      <Route path="/preview" component={PreviewPage} />
       <Route path="/role-selector" component={RoleSelector} />
       
       <Route path="/client" component={ClientHome} />
@@ -53,27 +53,31 @@ function AppWrapper() {
   useEffect(() => {
     if (!isLoading && user) {
       
-      // 1. АДМІН -> ТІЛЬКИ АДМІНКА
+      // --- 1. АДМІН (СУВОРО ТІЛЬКИ АДМІНКА) ---
       if (role === "admin" || String(userId) === ADMIN_ID) {
+        // Якщо ви спробуєте зайти на /client або /driver - вас викине в /admin
         if (!location.startsWith("/admin")) {
           setLocation("/admin");
         }
-        return;
+        return; 
       }
 
-      // 2. ВОДІЙ -> МАЄ ВИБІР (Через Role Selector)
+      // --- 2. ВОДІЙ (МАЄ ДОСТУП ДО ВСЬОГО, ОКРІМ АДМІНКИ) ---
       if (role === "driver") {
-        // Якщо водій зайшов на корінь -> даємо вибрати
+        // Заборона на адмінку
+        if (location.startsWith("/admin")) {
+          setLocation("/role-selector");
+          return;
+        }
+        // Якщо водій на старті -> даємо вибір (Робота чи Таксі)
         if (location === "/") {
           setLocation("/role-selector");
         }
-        // Водію дозволено і /driver, і /client, і /order
-        return;
       }
 
-      // 3. КЛІЄНТ -> ТІЛЬКИ ЗАМОВЛЕННЯ
+      // --- 3. КЛІЄНТ (ТІЛЬКИ ЗАМОВЛЕННЯ) ---
       if (role === "client") {
-        // Заборона на адмінку і водія
+        // Заборона на адмінку, водія і вибір ролі
         if (location.startsWith("/admin") || location.startsWith("/driver") || location === "/role-selector") {
           setLocation("/client");
           return;
@@ -85,7 +89,7 @@ function AppWrapper() {
           return;
         }
         
-        // Вхід
+        // Якщо все ок -> в кабінет
         if (location === "/" && user.phone) {
           setLocation("/client");
         }
