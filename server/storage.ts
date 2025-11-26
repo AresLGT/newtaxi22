@@ -72,7 +72,7 @@ export class MemStorage implements IStorage {
     this.tariffs.set("courier", { type: "courier", basePrice: 80, perKm: 20 });
     this.tariffs.set("towing", { type: "towing", basePrice: 500, perKm: 50 });
 
-    // ТІЛЬКИ ВИ - АДМІН
+    // ВАШ АДМІН
     this.users.set("7677921905", {
       id: "7677921905", role: "admin", name: "Адміністратор", phone: null,
       telegramAvatarUrl: null, isBlocked: false, warnings: [], bonuses: [], balance: 0
@@ -100,22 +100,31 @@ export class MemStorage implements IStorage {
     return updatedUser;
   }
   
-  // Адмін теж входить в список водіїв для сповіщень
-  async getAllDrivers() { return Array.from(this.users.values()).filter(u => u.role === "driver" || u.role === "admin"); }
+  // Водії - тільки ті, у кого role=driver
+  async getAllDrivers() { return Array.from(this.users.values()).filter(u => u.role === "driver"); }
   async getAllClients() { return Array.from(this.users.values()).filter(u => u.role === "client"); }
   async getAllUsers() { return Array.from(this.users.values()); }
   
   async registerDriverWithCode(userId: string, code: string, name: string, phone: string) {
     const cleanCode = code.trim().toUpperCase();
+    // Пошук коду
     let accessCode: AccessCode | undefined;
     for (const [key, val] of this.accessCodes.entries()) {
       if (key.toUpperCase() === cleanCode) { accessCode = val; break; }
     }
+
     if (!accessCode || accessCode.isUsed) return null;
 
+    // Оновлюємо юзера
     let user = await this.getUser(userId);
-    if (!user) user = await this.createUser({ id: userId, role: "driver", name, phone, telegramAvatarUrl: null });
-    else user = await this.updateUser(userId, { role: "driver", name, phone }) || user;
+    if (!user) {
+      // Якщо юзера не було - створюємо відразу водієм
+      user = await this.createUser({ id: userId, role: "driver", name, phone, telegramAvatarUrl: null });
+    } else {
+      // Якщо був (клієнт) - міняємо роль на driver
+      const updated = await this.updateUser(userId, { role: "driver", name, phone });
+      if (updated) user = updated;
+    }
     
     await this.markCodeAsUsed(accessCode.code, userId);
     return user;
@@ -150,7 +159,7 @@ export class MemStorage implements IStorage {
     const o = this.orders.get(id);
     if (!o || o.status !== "pending") return undefined;
     const d = await this.getUser(drId);
-    if (!d || (d.role !== "driver" && d.role !== "admin") || d.isBlocked) return undefined;
+    if (!d || (d.role !== "driver") || d.isBlocked) return undefined; // Тільки водій
     let price = o.price;
     if (dist) { const t = this.tariffs.get(o.type); if (t) price = t.basePrice + Math.ceil(dist * t.perKm); }
     const u: Order = { ...o, driverId: drId, status: "accepted", distanceKm: dist ?? o.distanceKm, price: price ?? o.price };

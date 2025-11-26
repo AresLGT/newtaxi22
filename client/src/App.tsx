@@ -27,7 +27,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={ClientHome} />
-      <Route path="/preview" component={PreviewPage} />
       <Route path="/role-selector" component={RoleSelector} />
       
       <Route path="/client" component={ClientHome} />
@@ -38,6 +37,7 @@ function Router() {
       <Route path="/driver-register" component={DriverRegister} />
       <Route path="/driver" component={DriverDashboard} />
       <Route path="/driver/profile" component={DriverProfile} />
+      
       <Route path="/admin-login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/chat/:orderId" component={ChatPage} />
@@ -53,39 +53,40 @@ function AppWrapper() {
   useEffect(() => {
     if (!isLoading && user) {
       
-      // --- 1. АДМІН ---
+      // 1. АДМІН -> ТІЛЬКИ АДМІНКА
       if (role === "admin" || String(userId) === ADMIN_ID) {
-        // Якщо адмін на вході - пропонуємо адмінку
-        if (location === "/role-selector" || location === "/admin-login") {
+        if (!location.startsWith("/admin")) {
           setLocation("/admin");
         }
-        // Але якщо пішов в /driver - не чіпаємо його
-        return; 
+        return;
       }
 
-      // --- 2. ВОДІЙ ---
+      // 2. ВОДІЙ -> МАЄ ВИБІР (Через Role Selector)
       if (role === "driver") {
-        // Водій на вході -> кабінет
-        if (location === "/role-selector" || location === "/") {
-          setLocation("/driver");
+        // Якщо водій зайшов на корінь -> даємо вибрати
+        if (location === "/") {
+          setLocation("/role-selector");
         }
-        // Якщо водій хоче зайти в /client (замовити) -> дозволяємо!
+        // Водію дозволено і /driver, і /client, і /order
+        return;
       }
 
-      // --- 3. КЛІЄНТ ---
+      // 3. КЛІЄНТ -> ТІЛЬКИ ЗАМОВЛЕННЯ
       if (role === "client") {
-        // Блокуємо доступ до адмінки і водія
-        if (location.startsWith("/admin") || location.startsWith("/driver")) {
+        // Заборона на адмінку і водія
+        if (location.startsWith("/admin") || location.startsWith("/driver") || location === "/role-selector") {
           setLocation("/client");
           return;
         }
-        // Якщо немає телефону -> реєстрація
-        if (!user.phone && location !== "/client-register" && location !== "/role-selector") {
+
+        // Реєстрація
+        if (!user.phone && location !== "/client-register") {
           setLocation("/client-register");
           return;
         }
-        // Звичайний вхід
-        if ((location === "/" || location === "/role-selector") && user.phone) {
+        
+        // Вхід
+        if (location === "/" && user.phone) {
           setLocation("/client");
         }
       }
