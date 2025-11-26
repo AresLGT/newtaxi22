@@ -20,6 +20,8 @@ import ChatPage from "@/pages/chat-page";
 import PreviewPage from "@/pages/preview";
 import NotFound from "@/pages/not-found";
 
+const ADMIN_ID = "7677921905";
+
 function Router() {
   return (
     <Switch>
@@ -45,53 +47,45 @@ function Router() {
 
 function AppWrapper() {
   const [location, setLocation] = useLocation();
-  const { user, role, isLoading } = useUser();
+  const { user, role, isLoading, userId } = useUser();
 
   useEffect(() => {
     if (!isLoading && user) {
       
-      // --- 1. ПРАВИЛА ДЛЯ АДМІНА (МАКСИМАЛЬНА СВОБОДА) ---
-      if (role === "admin") {
-        // Тільки якщо адмін на сторінці вибору ролі або логіна - направляємо в панель
+      // 1. АДМІН: (Завжди пускаємо в адмінку зі старту)
+      if (role === "admin" || String(userId) === ADMIN_ID) {
         if (location === "/role-selector" || location === "/admin-login") {
           setLocation("/admin");
         }
-        // У всіх інших випадках (/driver, /client, /admin) - НІЧОГО НЕ РОБИМО.
-        // Адмін має право бути де завгодно.
         return; 
       }
 
-      // --- 2. ПРАВИЛА ДЛЯ КЛІЄНТА ---
+      // 2. ВОДІЙ
+      if (role === "driver") {
+        // Якщо водій зайшов на старт або вибір ролі -> кидаємо в кабінет
+        if (location === "/role-selector" || location === "/") {
+          setLocation("/driver");
+        }
+        // Якщо водій хоче зайти в /client (замовити таксі) - ДОЗВОЛЯЄМО!
+      }
+
+      // 3. КЛІЄНТ
       if (role === "client") {
-        // Немає телефону -> на реєстрацію
+        // Якщо немає телефону -> реєстрація
         if (!user.phone && location !== "/client-register" && location !== "/role-selector") {
           setLocation("/client-register");
           return;
         }
-        // Є телефон і стоїть на вході -> в кабінет
+        // Якщо все ок -> кабінет клієнта
         if ((location === "/" || location === "/role-selector") && user.phone) {
           setLocation("/client");
-        }
-      }
-
-      // --- 3. ПРАВИЛА ДЛЯ ВОДІЯ ---
-      if (role === "driver") {
-        if (location === "/role-selector" || location === "/") {
-          setLocation("/driver");
         }
       }
     }
   }, [user, role, isLoading, location, setLocation]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4"></div>
-          <p className="text-secondary-foreground">Завантаження...</p>
-        </div>
-      </div>
-    );
+    return <div className="flex items-center justify-center h-screen">Завантаження...</div>;
   }
 
   return <Router />;
