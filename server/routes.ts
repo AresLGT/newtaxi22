@@ -10,12 +10,17 @@ import {
 import { rateLimitMiddleware } from "./middleware/rate-limit";
 
 // --- НАЛАШТУВАННЯ ---
-const WEBAPP_URL = "https://newtaxi22-production.up.railway.app";
+const WEBAPP_URL = process.env.WEB_APP_URL || "https://newtaxi22-production.up.railway.app";
 
-// Функція відправки (повертає результат, щоб ми знали message_id)
+// Функція відправки
 async function sendTelegramMessage(chatId: string, text: string, openWebApp: boolean = false) {
-  const token = process.env.BOT_TOKEN;
-  if (!token) return null;
+  // ВИПРАВЛЕНО: Використовуємо правильну змінну середовища
+  const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+  
+  if (!token) {
+    console.error("❌ Telegram token not found in environment variables!");
+    return null;
+  }
 
   const body: any = {
     chat_id: chatId,
@@ -23,10 +28,9 @@ async function sendTelegramMessage(chatId: string, text: string, openWebApp: boo
     parse_mode: 'HTML'
   };
 
-  // Додаємо кнопку відкриття Web App, якщо треба
   if (openWebApp) {
     body.reply_markup = {
-      inline_keyboard: [[{ text: "↗️ Прийняти замовлення", web_app: { url: `${WEBAPP_URL}/driver` } }]]
+      inline_keyboard: [[{ text: "↗️ Відкрити додаток", web_app: { url: `${WEBAPP_URL}/client` } }]]
     };
   }
 
@@ -36,7 +40,8 @@ async function sendTelegramMessage(chatId: string, text: string, openWebApp: boo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    return await res.json();
+    const data = await res.json();
+    return data;
   } catch (error) {
     console.error(`Failed to send message to ${chatId}`, error);
     return null;
@@ -45,7 +50,7 @@ async function sendTelegramMessage(chatId: string, text: string, openWebApp: boo
 
 // Функція видалення повідомлення
 async function deleteTelegramMessage(chatId: string, messageId: number) {
-  const token = process.env.BOT_TOKEN;
+  const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
   if (!token) return;
 
   try {
@@ -107,13 +112,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.get("/api/admin/reviews", async (req, res) => { const r = await storage.getAllRatings(); res.json(r); });
   
+  // --- ВИПРАВЛЕНИЙ BROADCAST ---
   app.post("/api/admin/broadcast", async (req, res) => {
     try {
       const { message } = req.body;
+      if (!message) return res.status(400).json({ error: "Message is required" });
+
       const users = await storage.getAllUsers();
-      users.forEach(user => { if (user.id && /^\d+$/.test(user.id)) sendTelegramMessage(user.id, `📢 <b>Оголошення:</b>\n\n${message}`); });
-      res.json({ success: true });
-    } catch { res.status(500).json({}); }
+      
+      // Відправляємо асинхронно, щоб не блокувати сервер
+      // Використовуємо for...of для послідовної відправки (щоб не зловити бан від Телеграму за спам)
+      (async () => {
+        for (const user of users) {
+          if (user.id && /^\d+$/.test(user.id) && !user.isBlocked) {
+            await sendTelegramMessage(user.id, `📢 <b>Оголошення:</b>\n\n${message}`);
+            // Маленька затримка щоб не перевантажити API
+            await new Promise(resolve => setTimeout(resolve, 50)); 
+          }
+        }
+      })();
+
+      res.json({ success: true, count: users.length });
+    } catch { res.status(500).json({ error: "Failed to broadcast" }); }
   });
 
   // Orders Read
@@ -129,19 +149,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = insertOrderSchema.parse(req.body);
       const order = await storage.createOrder(data);
-      res.status(201).json(order); // Швидка відповідь
+      res.status(201).json(order);
 
-      // Розсилка водіям
       const drivers = await storage.getAllDrivers();
       const orderText = `🚖 <b>Нове замовлення!</b>\n\n📍 <b>Звідки:</b> ${order.from}\n🏁 <b>Куди:</b> ${order.to}\n💰 <b>Орієнтовно:</b> ${order.price || "?"} грн`;
       
-      // Використовуємо async цикл, щоб чекати на відповіді Telegram і зберігати ID
       for (const driver of drivers) {
         if (driver.id && /^\d+$/.test(driver.id) && !driver.isBlocked && driver.id !== order.clientId) {
-           // Відправляємо і чекаємо результат
            const result = await sendTelegramMessage(driver.id, orderText, true);
-           
-           // Якщо Telegram повернув message_id, зберігаємо його
            if (result && result.ok && result.result && result.result.message_id) {
              await storage.addOrderNotification(order.orderId, driver.id, result.result.message_id);
            }
@@ -161,15 +176,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const order = await storage.acceptOrder(req.params.id, data.driverId, data.distanceKm);
       if (!order) return res.status(400).json({ error: "Cannot accept order" });
 
-      // --- ВИДАЛЕННЯ ПОВІДОМЛЕНЬ ---
-      // Отримуємо список всіх, кому ми відправили це замовлення
       const notifications = await storage.getOrderNotifications(req.params.id);
-      
-      // Пробігаємось і видаляємо
       notifications.forEach(note => {
          deleteTelegramMessage(note.chatId, note.messageId);
       });
-      // ------------------------------
 
       if (order.clientId && /^\d+$/.test(order.clientId)) {
         sendTelegramMessage(order.clientId, `✅ <b>Водій прийняв замовлення!</b>\n\nВодій: ${driver.name}\nАвто вже виїжджає.`);
@@ -179,7 +189,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) { res.status(400).json({ error: error?.message }); }
   });
 
-  // Інші дії
   app.post("/api/orders/:id/release", async (req, res) => { try { const u = await storage.releaseOrder(req.params.id); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(500).json({}); } });
   app.post("/api/orders/:id/cancel", async (req, res) => { try { const u = await storage.updateOrder(req.params.id, { status: "cancelled" }); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(500).json({}); } });
   app.post("/api/admin/orders/:id/cancel", async (req, res) => { try { const u = await storage.updateOrder(req.params.id, { status: "cancelled" }); if(!u) return res.status(404).json({}); res.json(u); } catch { res.status(500).json({}); } });
