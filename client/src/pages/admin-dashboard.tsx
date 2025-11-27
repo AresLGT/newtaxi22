@@ -28,6 +28,9 @@ export default function AdminDashboard() {
   const [currentView, setCurrentView] = useState<AdminView>("menu");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [broadcastMsg, setBroadcastMsg] = useState("");
+  
+  // Стан для введення суми поповнення (ID водія -> Сума)
+  const [amountInputs, setAmountInputs] = useState<Record<string, string>>({});
 
   // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
   const { data: drivers = [] } = useQuery<User[]>({ queryKey: ["/api/admin/drivers"] });
@@ -64,6 +67,8 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/drivers"] });
       toast({ title: "Баланс оновлено" });
+      // Очистити поля вводу після успіху
+      setAmountInputs({});
     },
   });
 
@@ -147,7 +152,7 @@ export default function AdminDashboard() {
               <Card key={t.type}>
                 <CardHeader className="pb-2">
                   <CardTitle className="capitalize flex items-center gap-2">
-                    {tariffNames[t.type] || t.type} {/* Переклад тут */}
+                    {tariffNames[t.type] || t.type}
                     <Badge variant="outline" className="text-xs font-normal text-muted-foreground">{t.type}</Badge>
                   </CardTitle>
                 </CardHeader>
@@ -166,19 +171,37 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ФІНАНСИ */}
+        {/* ФІНАНСИ (РУЧНИЙ ВВІД) */}
         {currentView === "finance" && (
           <div className="space-y-3">
-            {drivers.map((driver) => (
+            {drivers.length === 0 ? <div className="text-center text-muted-foreground">Немає водіїв</div> : drivers.map((driver) => (
               <Card key={driver.id}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold">{driver.name}</div>
-                    <div className="text-2xl font-mono text-green-600">{driver.balance || 0} ₴</div>
+                <CardContent className="p-4 flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-bold">{driver.name || "Без імені"}</div>
+                      <div className="text-xs text-muted-foreground">ID: {driver.id}</div>
+                    </div>
+                    <div className="text-2xl font-mono font-bold text-green-600">{driver.balance || 0} ₴</div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => updateBalanceMutation.mutate({ userId: driver.id, amount: -50 })}>-50</Button>
-                    <Button size="sm" variant="outline" onClick={() => updateBalanceMutation.mutate({ userId: driver.id, amount: 100 })}>+100</Button>
+                  
+                  <div className="flex gap-2 items-center pt-2 border-t mt-1">
+                    <Input 
+                      type="number" 
+                      placeholder="Сума (напр. 200 або -50)" 
+                      value={amountInputs[driver.id] || ""}
+                      onChange={(e) => setAmountInputs({...amountInputs, [driver.id]: e.target.value})}
+                      className="h-10 text-lg"
+                    />
+                    <Button 
+                      onClick={() => {
+                        const val = parseInt(amountInputs[driver.id]);
+                        if (val) updateBalanceMutation.mutate({ userId: driver.id, amount: val });
+                      }}
+                      disabled={!amountInputs[driver.id]}
+                    >
+                      Оновити
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
