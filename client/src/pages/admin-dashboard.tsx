@@ -1,19 +1,27 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Users, Car, Ban, CheckCircle, RefreshCw, Activity, 
-  XCircle, ArrowLeft, Settings, Star, Megaphone, Wallet, Coins
+  Users, Car, RefreshCw, 
+  ArrowLeft, Settings, Star, Megaphone, Wallet, Coins
 } from "lucide-react";
 import type { User, Order, AccessCode, Rating } from "@shared/schema";
 
 type AdminView = "menu" | "overview" | "dispatcher" | "drivers" | "finance" | "tariffs" | "reviews" | "broadcast";
+
+// Словник для перекладу тарифів
+const tariffNames: Record<string, string> = {
+  taxi: "Таксі",
+  cargo: "Вантажне",
+  courier: "Кур'єр",
+  towing: "Евакуатор"
+};
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -80,7 +88,6 @@ export default function AdminDashboard() {
   });
 
   // --- СТАТИСТИКА ---
-  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'accepted' || o.status === 'in_progress');
   const completedOrders = orders.filter(o => o.status === 'completed');
   const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.price || 0), 0);
 
@@ -133,12 +140,17 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ТАРИФИ */}
+        {/* ТАРИФИ (ПЕРЕКЛАД) */}
         {currentView === "tariffs" && (
           <div className="space-y-4">
             {tariffs.map((t) => (
               <Card key={t.type}>
-                <CardHeader className="pb-2"><CardTitle className="capitalize">{t.type}</CardTitle></CardHeader>
+                <CardHeader className="pb-2">
+                  <CardTitle className="capitalize flex items-center gap-2">
+                    {tariffNames[t.type] || t.type} {/* Переклад тут */}
+                    <Badge variant="outline" className="text-xs font-normal text-muted-foreground">{t.type}</Badge>
+                  </CardTitle>
+                </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-xs mb-1">Базова (грн)</div>
@@ -183,7 +195,6 @@ export default function AdminDashboard() {
                 <CardContent className="p-4 space-y-2">
                   <div className="flex justify-between"><Badge variant="outline">#{order.orderId.slice(0,6)}</Badge><Badge>{order.status}</Badge></div>
                   
-                  {/* ВИПРАВЛЕНИЙ РЯДОК НИЖЧЕ */}
                   <div className="text-sm flex items-center gap-2">
                     {order.from} <span className="text-muted-foreground">→</span> {order.to}
                   </div>
