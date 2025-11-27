@@ -148,7 +148,8 @@ export function initTelegramBot(storage: IStorage) {
         [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]
       ];
     } else {
-      text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nДля реєстрації як водій - введіть код доступу (6 символів).`;
+      // --- ОНОВЛЕНИЙ ТЕКСТ ДЛЯ НОВИХ КОРИСТУВАЧІВ ---
+      text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nℹ️ <b>ВАЖЛИВО:</b> При першому запуску натисніть кнопку "Замовити послугу", потім зверху справа натисніть на 👤 (чоловічка) і напишіть своє <b>Ім'я</b> та <b>Номер телефону</b>.\n\nДля реєстрації як водій - введіть код доступу (6 символів).`;
       keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]];
     }
     
@@ -158,9 +159,8 @@ export function initTelegramBot(storage: IStorage) {
     });
   });
 
-  // --- НОВА КОМАНДА ДЛЯ РОЗСИЛКИ ---
+  // --- ІНШІ КОМАНДИ ---
   bot.onText(/\/broadcast (.+)/, async (msg, match) => {
-    // 1. Перевіряємо чи це адмін
     if (!isAdmin(msg.from!.id)) {
       await bot.sendMessage(msg.chat.id, '❌ Ця команда доступна тільки для адміністраторів');
       return;
@@ -171,26 +171,21 @@ export function initTelegramBot(storage: IStorage) {
 
     await bot.sendMessage(msg.chat.id, '⏳ Розпочинаю розсилку...');
 
-    // 2. Отримуємо всіх користувачів
     const users = await storage.getAllUsers();
     let successCount = 0;
     let failCount = 0;
 
-    // 3. Розсилаємо
     for (const user of users) {
-      // Перевіряємо, що ID складається тільки з цифр (щоб не слати на системні ID)
       if (user.id && /^\d+$/.test(user.id)) {
         try {
           await bot.sendMessage(user.id, `📢 <b>Оголошення:</b>\n\n${messageToSend}`, { parse_mode: 'HTML' });
           successCount++;
         } catch (error) {
-          // Користувач заблокував бота або видалився
           failCount++;
         }
       }
     }
 
-    // 4. Звіт
     await bot.sendMessage(msg.chat.id, `✅ <b>Розсилку завершено!</b>\n\nУспішно: ${successCount}\nНе вдалося: ${failCount}`, { parse_mode: 'HTML' });
   });
 
@@ -280,7 +275,6 @@ export function initTelegramBot(storage: IStorage) {
     const senderId = String(msg.from!.id);
     const messageText = msg.text?.trim();
     
-    // Перевірка коду (6 символів)
     if (messageText && messageText.length === 6 && /^[A-Z0-9]+$/i.test(messageText)) {
       const user = await getOrCreateUser(senderId, msg.from!.first_name);
       
