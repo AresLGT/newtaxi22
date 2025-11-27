@@ -93,7 +93,6 @@ export function initTelegramBot(storage: IStorage) {
   }
 
   function generateDriverCode(): string {
-    // Генеруємо 6 символів, щоб співпадало з логікою storage
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 6; i++) {
@@ -136,7 +135,7 @@ export function initTelegramBot(storage: IStorage) {
     let keyboard: TelegramBot.KeyboardButton[][] = [];
 
     if (user.role === 'admin') {
-      text = `Вітаю, ${firstName}! 👑\n\nВи Адміністратор і Водій.\n\n<b>Команди:</b>\n/generate - Згенерувати коди\n/codes - Невикористані коди\n/drivers - Список водіїв\n/stats - Статистика\n/setname ID ІМ'Я - Змінити ім'я`;
+      text = `Вітаю, ${firstName}! 👑\n\nВи Адміністратор і Водій.\n\n<b>Команди:</b>\n/generate - Згенерувати коди\n/broadcast ТЕКСТ - Розсилка всім\n/drivers - Список водіїв\n/stats - Статистика`;
       keyboard = [
         [{ text: '💼 Я водій', web_app: { url: WEB_APP_URL + `/driver?userId=${userId}&asRole=driver` } }],
         [{ text: '🙋‍♂️ Я клієнт', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }],
@@ -149,7 +148,6 @@ export function initTelegramBot(storage: IStorage) {
         [{ text: '🙋‍♂️ Замовити для себе', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]
       ];
     } else {
-      // Текст оновлено: пишемо про 6 символів
       text = `Вітаємо, ${firstName}! 🎉\n\n🚖 Швидко, зручно, надійно!\n\nДля реєстрації як водій - введіть код доступу (6 символів).`;
       keyboard = [[{ text: '📱 Замовити послугу', web_app: { url: WEB_APP_URL + `/client?userId=${userId}&asRole=client` } }]];
     }
@@ -158,6 +156,42 @@ export function initTelegramBot(storage: IStorage) {
       parse_mode: 'HTML',
       reply_markup: { keyboard, resize_keyboard: true }
     });
+  });
+
+  // --- НОВА КОМАНДА ДЛЯ РОЗСИЛКИ ---
+  bot.onText(/\/broadcast (.+)/, async (msg, match) => {
+    // 1. Перевіряємо чи це адмін
+    if (!isAdmin(msg.from!.id)) {
+      await bot.sendMessage(msg.chat.id, '❌ Ця команда доступна тільки для адміністраторів');
+      return;
+    }
+
+    const messageToSend = match?.[1];
+    if (!messageToSend) return;
+
+    await bot.sendMessage(msg.chat.id, '⏳ Розпочинаю розсилку...');
+
+    // 2. Отримуємо всіх користувачів
+    const users = await storage.getAllUsers();
+    let successCount = 0;
+    let failCount = 0;
+
+    // 3. Розсилаємо
+    for (const user of users) {
+      // Перевіряємо, що ID складається тільки з цифр (щоб не слати на системні ID)
+      if (user.id && /^\d+$/.test(user.id)) {
+        try {
+          await bot.sendMessage(user.id, `📢 <b>Оголошення:</b>\n\n${messageToSend}`, { parse_mode: 'HTML' });
+          successCount++;
+        } catch (error) {
+          // Користувач заблокував бота або видалився
+          failCount++;
+        }
+      }
+    }
+
+    // 4. Звіт
+    await bot.sendMessage(msg.chat.id, `✅ <b>Розсилку завершено!</b>\n\nУспішно: ${successCount}\nНе вдалося: ${failCount}`, { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/stats/, async (msg) => {
@@ -240,20 +274,16 @@ export function initTelegramBot(storage: IStorage) {
     await bot.sendMessage(msg.chat.id, `📋 <b>Коди (${unused.length}):</b>\n\n${list}`, { parse_mode: 'HTML' });
   });
 
-  // --- ОБРОБКА КОДУ ВОДІЯ (ВИПРАВЛЕНА) ---
   bot.on('message', async (msg) => {
-    // Пропускаємо команди
     if (msg.text && msg.text.startsWith('/')) return;
     
     const senderId = String(msg.from!.id);
-    // ВИПРАВЛЕННЯ: прибираємо зайві пробіли (на випадок копіювання)
-    const messageText = msg.text?.trim(); 
+    const messageText = msg.text?.trim();
     
-    // ВИПРАВЛЕННЯ: перевіряємо довжину 6 СИМВОЛІВ (було 8), тільки букви та цифри
+    // Перевірка коду (6 символів)
     if (messageText && messageText.length === 6 && /^[A-Z0-9]+$/i.test(messageText)) {
       const user = await getOrCreateUser(senderId, msg.from!.first_name);
       
-      // Якщо користувач вже водій або адмін
       if (user.role === 'driver' || user.role === 'admin') {
          await bot.sendMessage(msg.chat.id, '✅ Ви вже зареєстровані як водій. Натисніть /start для меню.', { parse_mode: 'HTML' });
          return;
@@ -267,21 +297,15 @@ export function initTelegramBot(storage: IStorage) {
         return;
       }
       
-      // --- МИТТЄВА АКТИВАЦІЯ ---
-      // Позначаємо код як використаний
       await storage.markCodeAsUsed(codeUpper, senderId);
-      
-      // Оновлюємо роль користувача на водія
       await storage.updateUser(senderId, { role: 'driver' });
       
       const firstName = msg.from!.first_name || 'Водій';
       
-      // Повідомляємо користувача
       await bot.sendMessage(msg.chat.id, `✅ <b>Код прийнято!</b>\n\nВітаємо, ${firstName}! Вам надано роль водія.\nТепер ви можете приймати замовлення.\n\nНатисніть /start щоб побачити меню водія.`, { 
         parse_mode: 'HTML' 
       });
       
-      // (Опціонально) Повідомляємо адміна
       await bot.sendMessage(parseInt(ADMIN_ID), `ℹ️ <b>Новий водій активований:</b>\n\n👤 ${firstName}\n🆔 <code>${senderId}</code>\n🎫 Код: <code>${codeUpper}</code>`, { parse_mode: 'HTML' });
     }
   });
